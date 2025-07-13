@@ -9,3 +9,7 @@ For context, refer to
 `docs/*` and README.md for documentation of the assignment aims and design
 `dev/*` for session logs of the development process
 the source code.
+
+__current focus__
+
+working on branch `010_cutom_agent` for release `dev/010_custom_agent.md`
