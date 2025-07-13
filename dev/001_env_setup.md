@@ -30,5 +30,4 @@ requirements.txt
 ```
 mkdocs
 mkdocs-material
-mkdocs-material[mermaid]
 ```
