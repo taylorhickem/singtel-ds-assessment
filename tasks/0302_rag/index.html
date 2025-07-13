@@ -354,6 +354,19 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Retrieval-Augmented Generation (RAG)
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -365,6 +378,49 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Proposed Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Proposed Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#improvement-ideas" class="md-nav__link">
+    <span class="md-ellipsis">
+      Improvement ideas
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -444,6 +500,38 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Proposed Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Proposed Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#improvement-ideas" class="md-nav__link">
+    <span class="md-ellipsis">
+      Improvement ideas
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -466,6 +554,31 @@
 <li>Public web available data</li>
 </ul>
 <p>Clearly indicate in your response logs when retrieved information is being utilized. Whilst there is limited opportunity to extensively fine-tune, do state some your proposed techniques/approaches to improve the RAG pipeline</p>
+<h2 id="proposed-design">Proposed Design</h2>
+<p>The RAG component will provide the agent with factual context sourced from a
+small knowledge base of telco FAQs and roaming policies. The pipeline will be
+built with <strong>LangChain</strong> and use the following components:</p>
+<ol>
+<li><strong>Document Loader</strong> – markdown and text files are loaded from <code>data/</code> using
+   LangChain's generic loaders.</li>
+<li><strong>Embeddings Model</strong> – OpenAI embeddings (<code>text-embedding-3-small</code>) generate
+   vector representations of each document chunk.</li>
+<li><strong>Vector Store</strong> – the embeddings are stored in a local <strong>FAISS</strong> index which
+   is persisted to disk so it can be reused across runs.</li>
+<li><strong>Retriever</strong> – a simple similarity search (<code>k=4</code>) fetches the most relevant
+   passages for each user query.</li>
+<li><strong>Response Synthesis</strong> – retrieved passages are passed to the LLM using
+   LangChain's <code>RetrievalQA</code> chain which appends citations in the final answer.</li>
+</ol>
+<h3 id="improvement-ideas">Improvement ideas</h3>
+<ul>
+<li>Experiment with cosine similarity thresholding to reduce irrelevant snippets.</li>
+<li>Preprocess text with domain specific synonyms to improve recall.</li>
+<li>Monitor retrieval hits and misses to iteratively expand the document set.</li>
+</ul>
+<p>By keeping the dataset small and local we avoid heavy infrastructure while still
+demonstrating how the agent can reference up-to-date telco knowledge when
+answering user questions.</p>
 
 
 
