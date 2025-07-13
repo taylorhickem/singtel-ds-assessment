@@ -11,3 +11,35 @@ Clearly document:
 
 - The specific business problem your custom tool addresses.
 - Integration method between your tool and the agent.
+
+## Proposed Design
+
+The custom agent will be built with **LangChain** using the `AgentExecutor` API. A conversational
+LLM (OpenAI `gpt-3.5-turbo`) will drive the agent. The key custom tool is a
+**Roaming Plan Recommendation** utility that looks up a mock catalogue of plans
+and selects the most appropriate option for the user based on destination,
+expected usage and budget. Additional lightweight tools can be added (such as a
+billing dispute classifier) but the focus is on demonstrating one complete
+example.
+
+### Tool implementation
+
+- Mock data stored in a small CSV is loaded with **pandas**.
+- Business logic is implemented as a Python function that accepts structured
+  input (destination, data usage, travel duration) and returns a recommended
+  plan with reasoning.
+- The function is wrapped as a `StructuredTool` in LangChain so the agent can
+  invoke it when required.
+
+### Agent flow
+
+1. **Prompt & Memory** – the agent uses a conversation chain with minimal
+   memory to maintain context.
+2. **Tool Calls** – when the user asks for roaming advice the agent calls the
+   recommendation tool, passing the parsed parameters.
+3. **Response** – the result is combined with natural language guidance from the
+   LLM.
+
+This design keeps the tool logic separate from the agent so that more telco
+utilities can be added easily. Mock data keeps the implementation simple while
+showing how a real data source would be integrated.
