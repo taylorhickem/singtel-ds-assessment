@@ -1,2 +1,16 @@
+# Virtual environments
 env
+.venv
+
+# Build artifacts
 site
+__pycache__/
+*.pyc
+
+# Environment variables and secrets
+.env
+
+# Vector store indexes and runtime data
+*.db
+index/
+
