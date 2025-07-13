@@ -1,0 +1,22 @@
+site_name: Singtel Data Science Assessment
+
+nav:
+  - Home: index.md
+  - Assignment: 01_assignment.md
+  - Guidelines: 04_guidelines.md
+  - Project: 02_project.md
+  - Tasks:
+    - Custom Agent: tasks/0301_custom_agent.md
+    - Retrieval-Augmented Generation (RAG): tasks/0302_rag.md
+    - Integration Strategy: tasks/0303_integration.md
+    - Usage Report: tasks/0304_usage_report.md
+
+theme:
+  name: material
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
