@@ -1,4 +1,10 @@
 # Environment setup
+setup environment
+
+ - documentation outline
+ - virtual env
+ - integration with AI Coding Codex
+ - requirements.txt and setup script
 
 ## Session logs
 
@@ -10,6 +16,7 @@ session logs are timestamped to Singapore timezone in reverse chronological orde
 - updated requirements, setup script and .gitignore based on the design
 - wrote documentation pages describing the custom agent, RAG pipeline and
   integration strategy
+
 ### Design [Developer] Codex prompt 2025-07-13 19:16
 for context, refer to assignment main page `docs/01_assignment.md`
 
