@@ -19,91 +19,152 @@ RoamingPlanRecommender.recommend()
     }
 """
 # dependencies -------------------------------------------------------------------------------------------------------
-import pandas as pd
+from typing import Optional
 from .roaming_plans import DBConnector
+from base import BaseHandler
 
 
 # constants -------------------------------------------------------------------------------------------------------
+SHORTLIST_NUM_DEFAULT = 3
 
 
 # module variables -------------------------------------------------------------------------------------------------
-plans = None
-
-
-# helper functions -------------------------------------------------------------------------------------------------
-def duration_to_days(duration_str: str) -> int:
-    return int(duration_str.lower().replace("days", "").replace("day", "").strip())
 
 
 # classes ------------------------------------------------------------------------------------------------------------
-class RoamingPlanRecommender:
-    def __init__(self):
+class RoamingPlanRecommender(BaseHandler):
+    def __init__(self, shortlist_num=None):
         self.db = DBConnector()
+        self.recommend_shortlist_num: int = shortlist_num or SHORTLIST_NUM_DEFAULT
+        super().__init__()
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__}: [{self.status()}]>'
+
+    def status(self):
+        self._status_update_from_db()
+        return super().status()
+
+    def _status_update_from_db(self):
+        if self.db.status() == 'ERROR':
+            self._status_code = 2
+            self.error = f'{self.error} database error {self.db.error}'
+        elif self.db.status() == 'READY' and self._status_code == 1:
+            self._status_code = 0
 
     def db_build(self):
         build_success = self.db.build()
         if not build_success:  
             ex_msg = f'failed to build roaming plans database. {self.db.error}'          
-            raise RuntimeError(ex_msg)
+            self._exception_handle(msg=ex_msg)
+        return build_success
+
+    def db_connect(self):
+        if self.db.connected():
+            return True
+        else:
+            self.db.connect()
+            if self.db.connected():
+                return True
+            else:
+                ex_msg = f'failed to connect to database. {self.db.error}'
+                self._exception_handle(msg=ex_msg)
+                return False
 
     def recommend(
         self,
         destination: str,
-        duration: str,
+        duration_days: int,
         service_type: str = "data",
         data_needed_gb: float = None
     ) -> list[dict]:
-        # Step 1: Filter by destination and duration
-        candidates = plans[
-            (plans['Destination'].str.lower() == destination.lower()) &
-            (plans['Data_Pass_Validity'].str.lower() == duration.lower())
-        ]
 
-        if candidates.empty:
-            return []
+        if not self.db_connect():
+            msg = f'problem connecting to roaming plan database {self.db.error}'
+            self._exception_handle(msg=msg)
+            return False
 
-        results = []
+        try:
+            zone = self._get_zone_from_destination(destination)
+            if zone is None:
+                self._exception_handle(msg=f'ERROR. no zone found for {destination}')
+                return []
 
-        # Step 2: Score based on service type and data requirement
-        for _, row in candidates.iterrows():
-            score = 0
-            try:
-                if service_type == "data":
-                    plan_gb = float(row['Data_Pass_Data'].replace("GB", "").replace("MB", ""))
+            plans = self._get_all_plans_for_zone(zone)
+            if not plans:
+                self._exception_handle(msg=f'ERROR. no plans found for zone {zone}')
+                return []
 
-                    # Reject plans that offer less than required data
-                    if data_needed_gb is not None and plan_gb < data_needed_gb:
-                        continue
+            # exact match
+            exact_plans = [p for p in plans if p['duration_days'] == duration_days]
+            candidates = exact_plans
 
-                    score = plan_gb  # simple scoring by GB offered
+            if not exact_plans:
+                print(f'INFO. interpolating plan ...')
+                interpolated = self._interpolate_plan(plans, duration_days, zone)
+                if interpolated:
+                    candidates = [interpolated]
 
-                elif service_type == "calls":
-                    cost_per_min = float(row['Pay_Per_Use_Call_Outgoing'].replace("S$", "").split("/")[0])
-                    score = -cost_per_min
+            score_results = [
+                (self._score_plan(p, zone, service_type, data_needed_gb), p)
+                for p in candidates
+            ]
+            results = [r for r in score_results if r[0] is not None]
+            print(f'INFO. scored results {score_results}')
+            print(f'INFO. scored results filtered for non-zero scores {results}')
 
-                elif service_type == "sms":
-                    cost_per_sms = float(row['Pay_Per_Use_SMS'].replace("S$", "").split("/")[0])
-                    score = -cost_per_sms
+            top = sorted(results, key=lambda x: -x[0])[:self.recommend_shortlist_num]
+            return [r[1] for r in top]
 
-                results.append((score, row.to_dict()))
+        except Exception as e:
+            self._exception_handle(f'Recommendation query failed: {e}', exception=e)
+            return False
 
-            except (ValueError, AttributeError):
-                continue  # Skip row if conversion fails
+    def _get_zone_from_destination(self, country: str) -> Optional[int]:
+        self.db.execute("SELECT zone FROM destination WHERE lower(country) = ?", args=(country.lower(),))
+        result = self.db.cursor.fetchone()
+        return result[0] if result else None
 
-        if not results:
-            return []
+    def _get_all_plans_for_zone(self, zone: int) -> list[dict]:
+        self.db.execute("SELECT * FROM plan WHERE zone = ?", args=(zone,))
+        columns = [desc[0] for desc in self.db.cursor.description]
+        return [dict(zip(columns, row)) for row in self.db.cursor.fetchall()]
 
-        # Step 3: Sort and return top 3
-        top3 = sorted(results, key=lambda x: -x[0])[:3]
-        return [entry[1] for entry in top3]
+    def _interpolate_plan(self, plans: list[dict], duration: int, zone: int) -> Optional[dict]:
+        lower = [p for p in plans if p['duration_days'] < duration]
+        upper = [p for p in plans if p['duration_days'] > duration]
 
+        if not lower or not upper:
+            return None
 
-# roaming plan db ---------------------------------------------------------------------------------------
-def db_create_from_csv_files():
-    pass
+        p_low = max(lower, key=lambda x: x['duration_days'])
+        p_high = min(upper, key=lambda x: x['duration_days'])
 
-def plans_db_load(csv_path=ROAMING_PLAN_CSV_FILE):
-    global plans
-    plans = pd.read_csv(csv_path)
+        def interp(field):
+            x0, y0 = p_low['duration_days'], p_low[field]
+            x1, y1 = p_high['duration_days'], p_high[field]
+            return round(y0 + ((duration - x0) / (x1 - x0)) * (y1 - y0), 2)
 
+        return {
+            'zone': zone,
+            'duration_days': duration,
+            'data_gb': interp('data_gb'),
+            'price_sgd': interp('price_sgd'),
+            'id': -1  # synthetic
+        }
 
+    def _score_plan(self, plan: dict, zone: int, service: str, data_needed: float) -> Optional[float]:
+        if service == "data":
+            if data_needed and plan['data_gb'] < data_needed:
+                return None
+            return plan['data_gb']
+        
+        elif service == "calls":
+            self.db.execute("SELECT rate_calls_outgoing_per_min FROM ppu_rate WHERE zone = ?", (zone,))
+            return -self.db.cursor.fetchone()[0]
+        
+        elif service == "sms":
+            self.db.execute("SELECT rate_per_sms FROM ppu_rate WHERE zone = ?", (zone,))
+            return -float(self.db.cursor.fetchone()[0])
+        
+        return None
