@@ -5,6 +5,32 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
+### Roaming data plan [Developer] recommendation tool 2025-07-20 16:00
+
+
+
+### Roaming data plan [Developer] recommendation tool 2025-07-19 16:00
+tests
+- add a test case and implement using `pytest`
+    - destination: "Malaysia" 
+    - trip duration: 2 days
+    - service type: "data"
+    - data needed: 5.0
+
+recommendation tool
+ - reorganize, split into Agentic chat agent `recommend_agent/chat_agent.py` and non-agentic recommend tool `recommend_tool/recommend.py`
+ - implement as RoamingPlanRecommender class `recommend_agent/recommend.RoamingPlanRecommender` method `RoamingPlanRecommender.recommend`
+ - `recommend` function:
+  - takes inputs
+    - destination: location 
+    - trip duration: number of days
+    - service type: [data, sms, calls]
+    - data needed: amount of data needed in GB
+  - and returns results as a JSON row from the roaming plan CSV database `data/roaming_plans.csv`
+
+
+
+
 ### Environment [Developer] install dependencies 2025-07-13 20:30
 
 ```bash
