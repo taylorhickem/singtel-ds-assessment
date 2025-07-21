@@ -9,6 +9,7 @@ session logs are timestamped to Singapore timezone in reverse chronological orde
 
 roaming plans db
  - set build keep_open option default to True
+ - relax scoring on data requirements
 
 
 ### Roaming data plan [Developer] recommendation tool 2025-07-20 22:00
