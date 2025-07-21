@@ -1,6 +1,5 @@
 # dependencies ------------------------------------------------------------------------------------------------
 import unittest
-from unittest.mock import MagicMock
 from recommend_agent.recommend import RoamingPlanRecommender
 from recommend_agent import roaming_plans
 from recommend_agent.chat_agent import RoamingPlanAgent
@@ -121,35 +120,19 @@ class TestRoamingPlanAgent(unittest.TestCase):
         # RoamingPlanAgent with access to RoamingPlanRecommender.
         cls.agent = RoamingPlanAgent()
 
+    @unittest.skip("RoamingPlanAgent not implemented")
     def test_valid_query(self):
         """Valid query returns ranked plan options."""
         user_msg = "I'm going to Japan for 3 days and need 2GB of data."
-        expected = {
-            "plans": [
-                {"id": 1},
-                {"id": 2},
-                {"id": 3},
-            ],
-            "error": None,
-        }
-        self.agent.step = MagicMock(return_value=expected)
-        response = self.agent.step(user_msg)
-        self.agent.step.assert_called_once_with(user_msg)
-        self.assertEqual(len(response["plans"]), 3)
-        self.assertIsNone(response.get("error"))
 
-    def test_invalid_country_retry(self):
-        """Unknown country should trigger validation feedback."""
-        user_msg = "I'll be in Blorkistan."
-        expected = {
-            "plans": [],
-            "error": "no zone found for blorkistan",
-        }
-        self.agent.step = MagicMock(return_value=expected)
-        response = self.agent.step(user_msg)
-        self.agent.step.assert_called_once_with(user_msg)
-        self.assertEqual(response["plans"], [])
-        self.assertIn("blorkistan", response.get("error", "").lower())
+    @unittest.skip("RoamingPlanAgent not implemented")
+    def test_invalid_country(self):
+        self.agent.reset()
+        response = self.agent.step("I'll be in Blorkistan.")
+        plans = response.get("plans", [])
+        error = response.get("error", "").lower()
+        self.assertEqual(plans, [], f'Expected empty response, got {plans}')
+        self.assertIn("blorkistan", error, f'Expected country not found error, got {error}')
 
     @unittest.skip("RoamingPlanAgent not implemented")
     def test_near_match_country(self):
@@ -173,16 +156,26 @@ class TestRoamingPlanAgent(unittest.TestCase):
     def test_out_of_scope_query(self):
         user_msg = "How's the weather in Tokyo?"
 
+    @unittest.skip("RoamingPlanAgent not implemented")
+    def test_high_data_demand_real(self):
+        user_msg = "Going to Malaysia, need 100GB for 2 weeks."
+        at_least_plan_gb = 5 # we can adjust this threshold based on plan catalog
+        
+        self.agent.reset()
+        response = self.agent.step(user_msg)
+        
+        # Expect at least one plan to be returned
+        self.assertIsInstance(response, dict, f'Expected response as dict. response type {type(response)}')
+        self.assertIn("plans", response, f"expected a 'plans' key in response. key not found")
+        self.assertGreater(len(response["plans"]), 0, f'expected at least one plan, empty results')
+
+        # At least one plan should meet or exceed available high data (even if not 100GB)
+        max_plan_data = max(plan["data_gb"] for plan in response["plans"])
+        self.assertGreaterEqual(max_plan_data, at_least_plan_gb, f'expected to find plan at least {at_least_plan_gb} GB. found only {max_plan_data}')  
+
+    @unittest.skip("RoamingPlanAgent not implemented")
     def test_high_data_demand(self):
         user_msg = "Going to Malaysia, need 100GB for 2 weeks."
-        expected = {
-            "plans": [{"id": 99, "data_gb": 50}],
-            "error": None,
-        }
-        self.agent.step = MagicMock(return_value=expected)
-        response = self.agent.step(user_msg)
-        self.agent.step.assert_called_once_with(user_msg)
-        self.assertGreaterEqual(response["plans"][0]["data_gb"], 50)
 
     @unittest.skip("RoamingPlanAgent not implemented")
     def test_sms_only_request(self):
@@ -192,17 +185,9 @@ class TestRoamingPlanAgent(unittest.TestCase):
     def test_purchase_rejection(self):
         user_msg = "No thanks"  # after plan shown
 
+    @unittest.skip("RoamingPlanAgent not implemented")
     def test_user_confirms_plan(self):
         user_msg = "I'll take option 2"
-        expected = {
-            "plans": [],
-            "error": None,
-            "redirect_url": "https://example.com/buy?plan=2",
-        }
-        self.agent.step = MagicMock(return_value=expected)
-        response = self.agent.step(user_msg)
-        self.agent.step.assert_called_once_with(user_msg)
-        self.assertIn("http", response.get("redirect_url", ""))
 
     @unittest.skip("RoamingPlanAgent not implemented")
     def test_unexpected_utterance_mid_flow(self):
