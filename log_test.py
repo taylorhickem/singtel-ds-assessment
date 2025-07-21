@@ -7,6 +7,7 @@ def run():
     db_load()
     test_plan_recommend_malaysia_2days_5gb()
     test_plan_recommend_invalid_destination()
+    test_plan_recommend_unsupported_service_type()
 
 
 def db_load():
@@ -45,6 +46,20 @@ def test_plan_recommend_invalid_destination():
     print(f'INFO. selected plan: {plan}')
     if rec_error or db_error:
         print(f'ERROR.  {rec_error} {db_error}')
+
+
+def test_plan_recommend_unsupported_service_type():
+    trip = {
+        'destination': 'Malaysia',
+        'duration_days': 1,
+        'service_type': 'fax',
+        'data_needed_gb': 1
+    }
+    print(f'INFO. selecting plan for trip: {trip} ...')
+    plans = recommender.recommend(**trip)
+    error = plans[0].get('error', '')
+    if error:
+        print(f'ERROR. {error}')
 
 
 if __name__ == '__main__':

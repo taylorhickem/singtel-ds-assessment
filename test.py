@@ -93,7 +93,15 @@ class TestRoamingPlanRecommender(unittest.TestCase):
             data_needed_gb=1
         )
 
-        self.assertEqual(plans, [], "Expected empty result for unsupported service type")
+        self.assertTrue(plans, "Expected empty result for unsupported service type")
+
+        if plans:
+            plan = plans[0]
+            self.assertIn(
+                'unsupported service type', 
+                plan.get('error', '').lower(), 
+                f"Expected error unsupported service type, got {plan}"
+            )
 
 
 if __name__ == '__main__':

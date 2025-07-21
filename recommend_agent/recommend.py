@@ -30,6 +30,11 @@ from base import BaseHandler
 # constants -------------------------------------------------------------------------------------------------------
 SHORTLIST_NUM_DEFAULT = 3
 LARGE_GB = 1000
+SERVICE_TYPES = [
+    'data',
+    'calls',
+    'sms'
+]
 
 # module variables -------------------------------------------------------------------------------------------------
 
@@ -198,5 +203,9 @@ class RoamingPlanRecommender(BaseHandler):
         elif service == "sms":
             self.db.execute("SELECT rate_per_sms FROM ppu_rate WHERE zone = ?", (zone,))
             return -float(self.db.cursor.fetchone()[0])
+        
+        elif service not in SERVICE_TYPES:
+            msg = f'unsupported service type: {service}. Allowed {SERVICE_TYPES}'
+            raise ValueError(msg)
         
         return None

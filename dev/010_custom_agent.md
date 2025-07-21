@@ -6,9 +6,15 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
+### Roaming data plan [Developer] recommend agent 2025-07-21 17:30
+recommend agent
+
+### Roaming data plan [Developer] test cases 2025-07-21 16:02
+tests
+ - polish up test case for unsupported service type
+
 ### Roaming data plan [Codex] test cases 2025-07-21 15:34
 - add tests for high data need filtering and unsupported service type
-
 
 ### Roaming data plan [Developer] test cases Codex prompt 2025-07-21 15:33
 for context, refer to 

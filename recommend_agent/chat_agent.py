@@ -1,10 +1,8 @@
 # recommend_agent/tools.py
 import pandas as pd
 from langchain.tools import tool
+from .recommend import RoamingPlanRecommender
 
-# Load the roaming plan dataset
-PLANS_CSV_PATH = "data/roaming_plans.csv"
-df = pd.read_csv(PLANS_CSV_PATH)
 
 @tool
 def plans_db_tool(destination: str, duration: str = "1 day", service_type: str = "data") -> str:
