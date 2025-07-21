@@ -6,8 +6,41 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
-### Roaming data plan [Developer] recommend agent 2025-07-21 17:30
-recommend agent
+### Roaming data plan [Codex] RoamingPlanAgent recommend agent class test cases 2025-07-21 <>:<MM>
+
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent recommend agent test cases 2025-07-21 17:05
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `test.py`
+ - review the test cases listed for the Recommendation Agent in the Roaming Plan Agent design doc
+ - design how to implement the test cases, considering the proposed options in the table or other options as you see fit
+ - implement the test cases in `test.py`
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent recommend agent class test cases 2025-07-21 <>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] RoamingPlanAgent recommend agent test cases 2025-07-21 16:58
+test cases
+ - list 10x additional test cases in `docs/0301_custom_agent.md` for Roaming Plan Recommendation Agent
+ - options for test implementation
+  - `agent.step`, exposed agent state, response JSON parsing
+
+### Roaming data plan [Developer] recommend agent design ChatGPT prompt 2025-07-21 16:25
+
+__recommend agent__
+
+For the chat agent, what are some design features for the agent to act as language aware semantic interpreter between the user and the recommend tool RoamingPlanRecommender (RPR)
+
+The chat agent scope is prompt and gather the user requirements into the specific format that is valid for the RPR, and otherwise to continue in retry loop with the user until the trip specification is valid and ready to use with the RPR tool. Then the agent should select from the shortlisted plans from the RPR tool, format and present the options to the user, confirm plan selection and redirect the user to another URL to purchase the plan
+
+update 0301_custom_agent.md to elaborate on this design intention, apply edits to the current version and add updates for design features that implement this requirement
+
 
 ### Roaming data plan [Developer] test cases 2025-07-21 16:02
 tests

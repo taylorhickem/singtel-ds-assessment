@@ -24,7 +24,7 @@ example.
 
 ## Tool implementation
 
-- Mock data stored in a small CSV is loaded with **pandas**.
+- Mock data is loaded from CSV files to an **SQLite** database.
 - Business logic is implemented as a Python function that accepts structured
   input (destination, data usage, travel duration) and returns a recommended
   plan with reasoning.
@@ -43,6 +43,18 @@ example.
 This design keeps the tool logic separate from the agent so that more telco
 utilities can be added easily. Mock data keeps the implementation simple while
 showing how a real data source would be integrated.
+
+## Language-aware Semantic Interpreter Features
+
+To fulfill the chat agent's role as a **language-aware interpreter** between user inputs and the RoamingPlanRecommender (RPR) tool, the following design features are included:
+
+- **Natural Language Understanding:** The agent uses the LLM to extract and normalize structured fields (e.g., destination, duration, service type, data amount) from freeform text.
+- **Progressive Slot Filling:** It tracks missing values and engages in a retry loop until all required fields are gathered.
+- **Validation Feedback Loop:** Invalid values (e.g., unknown country or non-numeric duration) are flagged with helpful messages, prompting retry until all inputs are valid for RPR.
+- **Structured RPR Call:** Once validated, inputs are passed in structured format to RPR (destination, duration\_days, service\_type, data\_needed\_gb).
+- **Results Templating:** Agent formats the RPR shortlist using ranked output and includes pricing, usage limits, and pros/cons.
+- **Plan Confirmation Flow:** Agent asks user to confirm preferred plan and whether they want to proceed to purchase.
+- **Purchase Redirect Payload:** Upon confirmation, the agent generates a structured JSON payload and initiates redirection to a URL with this plan for purchase.
 
 ## UX Workflow for Roaming Plan Recommendation Agent
 
@@ -139,73 +151,21 @@ graph TD
 ```json
 {
   "plan": {
-    "zone": "Zone 1",
+    "zone": 1,
     "destination": "Malaysia",
-    "validity": "1 day",
-    "data": "1GB",
-    "price": "S$1"
+    "duration_days": 1,
+    "data_gb": 1,
+    "price_sg": 1.0
   },
   "user_id": "<session_or_user_token>"
 }
 ```
 
-### Sample python script for Plans Database Tool
-
-```python
-# recommend_agent/tools.py
-import pandas as pd
-from langchain.tools import tool
-
-# Load the roaming plan dataset
-PLANS_CSV_PATH = "data/roaming_plans.csv"
-df = pd.read_csv(PLANS_CSV_PATH)
-
-@tool
-def plans_db_tool(destination: str, duration: str = "1 day", service_type: str = "data") -> str:
-    """
-    Recommends the top 3 roaming plans for a given destination, duration, and service type.
-    Accepts:
-      - destination: country name
-      - duration: pass duration (e.g., "1 day", "3 days")
-      - service_type: one of "data", "calls", or "sms"
-    Returns:
-      - A summary of the top 3 matching plans with pros/cons.
-    """
-    try:
-        candidates = df[df['Destination'].str.lower() == destination.lower()]
-        candidates = candidates[candidates['Data_Pass_Validity'].str.lower() == duration.lower()]
-        if candidates.empty:
-            return f"No plans found for {destination} with duration {duration}."
-
-        results = []
-        for _, row in candidates.iterrows():
-            score = 0
-            if service_type == "data":
-                score = float(row['Data_Pass_Data'].replace("GB", "").replace("MB", ""))
-            elif service_type == "calls":
-                score = -float(row['Pay_Per_Use_Call_Outgoing'].replace("S$", "").split("/")[0])
-            elif service_type == "sms":
-                score = -float(row['Pay_Per_Use_SMS'].replace("S$", "").split("/")[0])
-
-            results.append((score, row))
-
-        top3 = sorted(results, key=lambda x: -x[0])[:3]
-        response = ""
-        for i, (_, plan) in enumerate(top3, 1):
-            response += (
-                f"\n{i}. Zone: {plan['Zone']}, Destination: {plan['Destination']}, "
-                f"Price: {plan['Data_Pass_Price']}, Data: {plan['Data_Pass_Data']}, "
-                f"Calls: {plan['Pay_Per_Use_Call_Outgoing']}, SMS: {plan['Pay_Per_Use_SMS']}"
-            )
-        return response.strip()
-    except Exception as e:
-        return f"Error processing request: {str(e)}"
-
-```
+This redirect URL or payload is configurable and can integrate with existing purchase portals or mocked endpoints for testing.
 
 ### Test cases
 
-__Roaming Plan Recommendation Tool__
+__Roaming Plan Tool__
 
 _Basic match on exact plan_
 
@@ -232,3 +192,25 @@ _Unsupported service type_
 
 - Test input: service_type = "fax"
 - Expected: No score computed → empty result
+
+__Recommendation Agent__
+
+| Use Case | Best Tool | 
+| - | - | 
+| Multi-turn conversation	| `agent.step()` or `AgentExecutor.invoke()` with `pytest` |
+| Tool call correctness	| Mocking + unittest or `pytest` |
+| Output structure validation	| `pytest` + `jsonschema` or custom assert logic |
+| State machine step-level testing | Custom agent class with exposed state with `pytest` |
+
+- **Valid query** — "I'm going to Japan for 3 days and need 2GB of data." → Agent returns 3 plan options and confirms.
+- **Invalid country** — "I'll be in Blorkistan." → Agent retries with validation feedback.
+- **Near match country** — "I'm traveling to Korea." → Agent clarifies with user they are traveling to South Korea, "Korea, Republic of" and selects the appropriate match from available countries.
+- **Plan query** — "Need data for Thailand." → Agent prompts for duration and amount.
+- **Non-numeric near match duration** — "I'll be there for a few moons." → Agent retries clarifies if user meant months.
+- **Non-numeric nonsense duration** — "I'll be there for a few spoons." → Agent retries asking for number of days.
+- **Out-of-scope query** — "How's the weather in Tokyo?" → Redirects or politely declines.
+- **High data demand** — "Going to Malaysia, need 100GB for 2 weeks." → Agent returns highest available plan and clarifies additional charges apply for excess data.
+- **SMS-only request** — "Going to Vietnam, only need SMS for 5 days." → Filters and ranks by SMS cost.
+- **Purchase rejection** — User declines to buy after plan is shown → Agent offers to restart or exit.
+- **User confirms plan** — Agent assembles JSON payload and returns redirect link.
+- **Unexpected user utterance mid-flow** — "Nevermind, show me movie times" → Agent gently resets or offers graceful exit.
