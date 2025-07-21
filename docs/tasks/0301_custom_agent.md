@@ -202,3 +202,33 @@ def plans_db_tool(destination: str, duration: str = "1 day", service_type: str =
         return f"Error processing request: {str(e)}"
 
 ```
+
+### Test cases
+
+__Roaming Plan Recommendation Tool__
+
+_Basic match on exact plan_
+
+- Test input: Singapore, 1-day trip, 1GB data
+- Expected: Plan returned exactly as specified in the DB.
+
+_Interpolated duration match_
+
+- Test input: Malaysia, 2-day trip, 2GB
+- Condition: No exact 2-day plan, should interpolate between 1-day and 3-day
+
+_Invalid destination_
+
+- Test input: "Blorkistan", 3-day trip
+- Expected: Empty list, error logged about missing zone.
+
+_High data need triggers filtering_
+
+- Test input: Thailand, 7-day trip, 20GB
+- Expected: Only plans with ≥ 20GB or fallback score of LARGE_GB
+- Assert: Highest data_gb plan selected if no perfect match.
+
+_Unsupported service type_
+
+- Test input: service_type = "fax"
+- Expected: No score computed → empty result

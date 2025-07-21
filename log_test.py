@@ -6,6 +6,7 @@ recommender = None
 def run():
     db_load()
     test_plan_recommend_malaysia_2days_5gb()
+    test_plan_recommend_invalid_destination()
 
 
 def db_load():
@@ -17,6 +18,22 @@ def db_load():
 def test_plan_recommend_malaysia_2days_5gb():
     trip = {
         'destination': 'Malaysia',
+        'duration_days': 2,
+        'service_type': 'data',
+        'data_needed_gb': 5.0
+    }
+    print(f'INFO. selecting plan for trip: {trip} ...')
+    plan = recommender.recommend(**trip)
+    rec_error = recommender.error
+    db_error = recommender.db.error if recommender.db else ''
+    print(f'INFO. selected plan: {plan}')
+    if rec_error or db_error:
+        print(f'ERROR.  {rec_error} {db_error}')
+
+
+def test_plan_recommend_invalid_destination():
+    trip = {
+        'destination': 'Blorkistan',
         'duration_days': 2,
         'service_type': 'data',
         'data_needed_gb': 5.0

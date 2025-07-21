@@ -44,6 +44,20 @@ class TestRoamingPlanRecommender(unittest.TestCase):
             self.assertEqual(top_plan.get(key), expected_value,
                              f"Mismatch in {key}: expected '{expected_value}', got '{top_plan.get(key)}'")
 
+    def test_invalid_destination(self):
+        plans = self.recommender.recommend(
+            destination="Blorkistan",
+            duration_days=2,
+            service_type="data",
+            data_needed_gb=5.0
+        )
+    
+        self.assertTrue(plans, "Expected a response, got none")
+    
+        top_plan = plans[0]
+        is_expected_error = 'no zone found' in top_plan.get('error', '').lower()
+        self.assertTrue(is_expected_error, f"expected 'no zone found' error, got {top_plan}") 
+
 
 if __name__ == '__main__':
     unittest.main()

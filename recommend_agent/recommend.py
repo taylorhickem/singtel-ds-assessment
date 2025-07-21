@@ -11,11 +11,14 @@ RoamingPlanRecommender.recommend()
 
   - returns results as a JSON row from the roaming plan database
     {
-        "Zone": <geographic category Zone 1 through 3>,
-        "Destination": <geographic destination ex Malaysia>,
-        "Data_Pass_Validity": <duration of trip in days>,
-        "Data_Pass_Data": <data amount in GB>,
-        "Data_Pass_Price": <data plan price in SGD>
+        "zone": <geographic category Zone 1 through 3>,
+        "duration_days": <duration of trip in days>,
+        "data_gb": <plan GB>,
+        "price_sgd": <plan price $>,
+        "rate_data_per_10kb": <rate $ per 10 KB above plan GB>,
+        "rate_calls_outgoing_per_min": <rate $ per min>,
+        "rate_calls_incoming_per_min": <rate $ per min>,
+        "rate_per_sms": <rate $ per SMS>
     }
 """
 # dependencies -------------------------------------------------------------------------------------------------------
@@ -69,6 +72,8 @@ class RoamingPlanRecommender(BaseHandler):
         return True
 
     def db_connect(self):
+        if self.db is None:
+            self.db = DBConnector()
         if self.db.connected():
             return True
         else:
@@ -89,26 +94,29 @@ class RoamingPlanRecommender(BaseHandler):
     ) -> list[dict]:
 
         if not self.db_connect():
-            msg = f'problem connecting to roaming plan database {self.db.error}'
-            self._exception_handle(msg=msg)
-            return False
+            ex_msg = f'problem connecting to roaming plan database {self.db.error}'
+            self._exception_handle(msg=ex_msg)
+            return [{'error': ex_msg}]
 
         try:
             zone = self._get_zone_from_destination(destination)
             if zone is None:
-                self._exception_handle(msg=f'ERROR. no zone found for {destination}')
-                return []
+                ex_msg = f'ERROR. no zone found for {destination}'
+                self._exception_handle(msg=ex_msg)
+                return [{'error': ex_msg}]
 
 
             plans = self._get_all_plans_for_zone(zone)
             if not plans:
-                self._exception_handle(msg=f'ERROR. no plans found for zone {zone}')
-                return []
+                ex_msg = f'ERROR. no plans found for zone {zone}'
+                self._exception_handle(msg=ex_msg)
+                return [{'error': ex_msg}]
 
             rates = self._get_rates_for_zone(zone)
             if not rates:
-                self._exception_handle(msg=f'ERROR. no rates found for zone {zone}')
-                return []
+                ex_msg = f'ERROR. no rates found for zone {zone}'
+                self._exception_handle(msg=ex_msg)
+                return [{'error': ex_msg}]
 
             # exact match
             exact_plans = [p for p in plans if p['duration_days'] == duration_days]
@@ -132,8 +140,9 @@ class RoamingPlanRecommender(BaseHandler):
             return add_rates
 
         except Exception as e:
-            self._exception_handle(f'Recommendation query failed: {e}', exception=e)
-            return False
+            ex_msg = f'Recommendation query failed: {e}'
+            self._exception_handle(msg=ex_msg, exception=e)
+            return [{'error': ex_msg}]
 
     def _get_zone_from_destination(self, country: str) -> Optional[int]:
         self.db.execute("SELECT zone FROM destination WHERE lower(country) = ?", args=(country.lower(),))

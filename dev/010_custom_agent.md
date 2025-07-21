@@ -5,6 +5,26 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
+### Roaming data plan [Codex] test cases 2025-07-21 <HH>:<MM>
+
+
+### Roaming data plan [Developer] test cases Codex prompt 2025-07-21 15:33
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `test.py`
+ - add two additional test cases to the test script for "High data need triggers filtering" and "unsupported service type"
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] test cases 2025-07-21 <HH>:<MM> 
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] test cases 2025-07-21 15:09
+add test case for invalid destination "Blorkistan"
+
 ### Roaming data plan [Developer] recommendation tool 2025-07-21 13:55
 
 test
@@ -51,9 +71,6 @@ recommendation tool
     - service type: [data, sms, calls]
     - data needed: amount of data needed in GB
   - and returns results as a JSON row from the roaming plan CSV database `data/roaming_plans.csv`
-
-
-
 
 ### Environment [Developer] install dependencies 2025-07-13 20:30
 
@@ -114,5 +131,3 @@ __table: roaming_plans__
 
 refer to PDF file `singtel_roaming_rates.pdf` and the design document `0301_custom_agent.md`
 break up this PDF file into a structured dataset that can be implemented as an Agent tool for a Roaming Plan recommendation engine.
-
-
