@@ -2,6 +2,8 @@
 import unittest
 from recommend_agent.recommend import RoamingPlanRecommender
 from recommend_agent import roaming_plans
+from recommend_agent.chat_agent import RoamingPlanAgent
+
 
 # constants ---------------------------------------------------------------------------------------------------
 
@@ -114,10 +116,11 @@ class TestRoamingPlanAgent(unittest.TestCase):
     choices or error details.
     """
 
-    def setUp(self):
+    @classmethod
+    def setUp(cls):
         # Placeholder agent stub. In future this should instantiate the real
         # RoamingPlanAgent with access to RoamingPlanRecommender.
-        self.agent = None
+        cls.agent = RoamingPlanAgent()
 
     @unittest.skip("RoamingPlanAgent not implemented")
     def test_valid_query(self):

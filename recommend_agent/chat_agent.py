@@ -4,6 +4,11 @@ from langchain.tools import tool
 from .recommend import RoamingPlanRecommender
 
 
+class RoamingPlanAgent():
+    def __init__(self):
+        pass
+
+
 @tool
 def plans_db_tool(destination: str, duration: str = "1 day", service_type: str = "data") -> str:
     """

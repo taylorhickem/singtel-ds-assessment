@@ -6,12 +6,29 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
-### Roaming data plan [Codex] RoamingPlanAgent recommend agent class test cases 2025-07-21 17:30
+### Roaming data plan [Codex] RoamingPlanAgent recommend agent test cases 2025-07-21 <HH>:<MM>
+
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent recommend agent test cases 2025-07-21 17:47
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `test.py`
+ - review the test cases listed for the Recommendation Agent in the Roaming Plan Agent design doc and the placeholders in `tests.py`
+ - implement a few sample test cases in `test.py` making some assumptions about the future behavior and attributes of `RoamingPlanAgent` 
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent recommend agent test cases 2025-07-21 <HH>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Codex] RoamingPlanAgent recommend agent class test cases 2025-07-21 17:07
 
 Implemented skeleton unittest class `TestRoamingPlanAgent` in `test.py` with
 placeholder tests for each scenario listed in the design document. All tests are
 skipped until the future agent implementation is available.
-
 
 ### Roaming data plan [Developer] Codex prompt RoamingPlanAgent recommend agent test cases 2025-07-21 17:05
 for context, refer to 
