@@ -3,17 +3,34 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 ## Session logs
 
-
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
+
+### Roaming data plan [Codex] RoamingPlanAgent 2025-07-21 <HH>:<MM>
+
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-21 22:00
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `recommend_agent.chat_agent.RoamingPlanAgent`
+ - review the test cases and the design for the `RoamingPlanAgent`
+ - implement the agent as a class, taking into consideration the test cases, design aims of exposing the state, language interface between the user and the plan recommender tool 
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-21 <HH>:<MM>
+ - raise a PR with changes to `test.py` and your session log
 
 ### Roaming data plan [Developer] RoamingPlanAgent recommend agent test cases 2025-07-21 18:30
 test cases
  - repaired test cases remove Magic Mock and test actual behavior of `agent.step`
 
 ### Roaming data plan [Codex] RoamingPlanAgent recommend agent test cases 2025-07-21 17:49
-
 - added mocked unit tests for `RoamingPlanAgent` covering valid query, invalid country,
   high data demand and user purchase confirmation scenarios
+
 ### Roaming data plan [Developer] Codex prompt RoamingPlanAgent recommend agent test cases 2025-07-21 17:47
 for context, refer to 
  - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
