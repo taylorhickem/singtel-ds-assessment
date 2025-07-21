@@ -11,7 +11,7 @@ def run():
 def db_load():
     global recommender
     recommender = RoamingPlanRecommender()
-    recommender.db.build(keep_open=True)
+    recommender.db.build()
 
 
 def test_plan_recommend_malaysia_2days_5gb():
@@ -24,7 +24,7 @@ def test_plan_recommend_malaysia_2days_5gb():
     print(f'INFO. selecting plan for trip: {trip} ...')
     plan = recommender.recommend(**trip)
     rec_error = recommender.error
-    db_error = recommender.db.error
+    db_error = recommender.db.error if recommender.db else ''
     print(f'INFO. selected plan: {plan}')
     if rec_error or db_error:
         print(f'ERROR.  {rec_error} {db_error}')

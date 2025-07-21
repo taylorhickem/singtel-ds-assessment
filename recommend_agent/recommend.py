@@ -26,7 +26,7 @@ from base import BaseHandler
 
 # constants -------------------------------------------------------------------------------------------------------
 SHORTLIST_NUM_DEFAULT = 3
-
+LARGE_GB = 1000
 
 # module variables -------------------------------------------------------------------------------------------------
 
@@ -59,6 +59,15 @@ class RoamingPlanRecommender(BaseHandler):
             self._exception_handle(msg=ex_msg)
         return build_success
 
+    def exit(self):
+        close_success = self.db_close()
+        self.db = None
+
+    def db_close(self):
+        if self.db:
+            self.db.close()
+        return True
+
     def db_connect(self):
         if self.db.connected():
             return True
@@ -90,9 +99,15 @@ class RoamingPlanRecommender(BaseHandler):
                 self._exception_handle(msg=f'ERROR. no zone found for {destination}')
                 return []
 
+
             plans = self._get_all_plans_for_zone(zone)
             if not plans:
                 self._exception_handle(msg=f'ERROR. no plans found for zone {zone}')
+                return []
+
+            rates = self._get_rates_for_zone(zone)
+            if not rates:
+                self._exception_handle(msg=f'ERROR. no rates found for zone {zone}')
                 return []
 
             # exact match
@@ -100,7 +115,6 @@ class RoamingPlanRecommender(BaseHandler):
             candidates = exact_plans
 
             if not exact_plans:
-                print(f'INFO. interpolating plan ...')
                 interpolated = self._interpolate_plan(plans, duration_days, zone)
                 if interpolated:
                     candidates = [interpolated]
@@ -110,11 +124,12 @@ class RoamingPlanRecommender(BaseHandler):
                 for p in candidates
             ]
             results = [r for r in score_results if r[0] is not None]
-            print(f'INFO. scored results {score_results}')
-            print(f'INFO. scored results filtered for non-zero scores {results}')
 
-            top = sorted(results, key=lambda x: -x[0])[:self.recommend_shortlist_num]
-            return [r[1] for r in top]
+            results_sorted = sorted(results, key=lambda x: -x[0])[:self.recommend_shortlist_num]
+            top_plans = [r[1] for r in results_sorted]
+
+            add_rates = [{**{k: v for k, v in p.items() if k != 'id'}, **rates} for p in top_plans]
+            return add_rates
 
         except Exception as e:
             self._exception_handle(f'Recommendation query failed: {e}', exception=e)
@@ -125,10 +140,18 @@ class RoamingPlanRecommender(BaseHandler):
         result = self.db.cursor.fetchone()
         return result[0] if result else None
 
+    def _get_rates_for_zone(self, zone: int) -> list[dict]:
+        self.db.execute("SELECT rate_data_per_10kb, rate_calls_outgoing_per_min, rate_calls_incoming_per_min, rate_per_sms FROM ppu_rate WHERE zone = ?", args=(zone,))
+        columns = [desc[0] for desc in self.db.cursor.description]
+        result = self.db.cursor.fetchone()
+        rates = dict(zip(columns, result)) if result else {}
+        return rates
+
     def _get_all_plans_for_zone(self, zone: int) -> list[dict]:
         self.db.execute("SELECT * FROM plan WHERE zone = ?", args=(zone,))
         columns = [desc[0] for desc in self.db.cursor.description]
-        return [dict(zip(columns, row)) for row in self.db.cursor.fetchall()]
+        plans = [dict(zip(columns, row)) for row in self.db.cursor.fetchall()]
+        return plans
 
     def _interpolate_plan(self, plans: list[dict], duration: int, zone: int) -> Optional[dict]:
         lower = [p for p in plans if p['duration_days'] < duration]
@@ -156,7 +179,7 @@ class RoamingPlanRecommender(BaseHandler):
     def _score_plan(self, plan: dict, zone: int, service: str, data_needed: float) -> Optional[float]:
         if service == "data":
             if data_needed and plan['data_gb'] < data_needed:
-                return None
+                return LARGE_GB
             return plan['data_gb']
         
         elif service == "calls":

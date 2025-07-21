@@ -28,11 +28,14 @@ class TestRoamingPlanRecommender(unittest.TestCase):
         self.assertTrue(plans, "Expected at least one plan, got none.")
     
         expected_plan = {
-            "zone": "Zone 1",
-            "destination": "Malaysia",
-            "duration_days": "2",
-            "data_gb": "5.6",
-            "price_sgd": "6"
+            "zone": 1,
+            "duration_days": 2,
+            "data_gb": 1.9,
+            "price_sgd": 2.0,
+            "rate_data_per_10kb": 0.01,
+            "rate_calls_outgoing_per_min": 0.29,
+            "rate_calls_incoming_per_min": 0.0,
+            "rate_per_sms": 0.1
         }
     
         top_plan = plans[0]

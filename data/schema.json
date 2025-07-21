@@ -65,7 +65,7 @@
       },
       {
         "column_name": "rate_per_sms",
-        "data_type": "TEXT",
+        "data_type": "REAL",
         "primary_key": 0,
         "nullable": 1
       }

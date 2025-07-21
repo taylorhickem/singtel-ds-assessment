@@ -77,7 +77,7 @@ class DBConnector(BaseHandler):
             self._exception_handle(exception=e, is_fatal=is_fatal, re_raise=re_raise)
             return False
 
-    def build(self, keep_open=False):
+    def build(self, keep_open=True):
         connect_success = self.connect()
         if connect_success:
             try:
@@ -159,12 +159,12 @@ class DBConnector(BaseHandler):
                 return False
 
 # entry point ----------------------------------------------------------------------------------------
-def db_build():
+def db_build(keep_open=True):
     db = DBConnector()
-    success = db.build()
+    success = db.build(keep_open=keep_open)
     errors = db.error
     return success, errors
 
 
 if __name__ == '__main__':
-    db_build()
+    db_build(keep_open=False)

@@ -5,9 +5,25 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
-### Roaming data plan [Developer] recommendation tool 2025-07-20 16:00
+### Roaming data plan [Developer] recommendation tool 2025-07-21 18:00
+
+roaming plans db
+ - set build keep_open option default to True
 
 
+### Roaming data plan [Developer] recommendation tool 2025-07-20 22:00
+
+recommend tool
+ - updated recommend method to use the SQLite db
+ - updated test case
+ - added interpolated solution for duration days in between fixed options
+ - updated database build
+
+roaming plans database
+ - implemented db as normalized SQLite database with three tables
+  - destination
+  - ppu_rate
+  - roaming_plan
 
 ### Roaming data plan [Developer] recommendation tool 2025-07-19 16:00
 tests
