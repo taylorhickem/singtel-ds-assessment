@@ -5,9 +5,13 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
-### Roaming data plan [Codex] RoamingPlanAgent 2025-07-21 <HH>:<MM>
+### Roaming data plan [Codex] RoamingPlanAgent 2025-07-21 22:04
 
-
+- Implemented `RoamingPlanAgent` with stateful `step` method parsing destination,
+  duration, data amount and service type.
+- Integrated agent with `RoamingPlanRecommender` and basic plan selection logic.
+- Updated `test.py` to exercise valid query, invalid country, high data demand
+  and plan confirmation scenarios without skips.
 ### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-21 22:00
 for context, refer to 
  - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`

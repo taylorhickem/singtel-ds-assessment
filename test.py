@@ -120,12 +120,14 @@ class TestRoamingPlanAgent(unittest.TestCase):
         # RoamingPlanAgent with access to RoamingPlanRecommender.
         cls.agent = RoamingPlanAgent()
 
-    @unittest.skip("RoamingPlanAgent not implemented")
     def test_valid_query(self):
         """Valid query returns ranked plan options."""
         user_msg = "I'm going to Japan for 3 days and need 2GB of data."
+        self.agent.reset()
+        response = self.agent.step(user_msg)
+        self.assertIn("plans", response)
+        self.assertGreater(len(response["plans"]), 0)
 
-    @unittest.skip("RoamingPlanAgent not implemented")
     def test_invalid_country(self):
         self.agent.reset()
         response = self.agent.step("I'll be in Blorkistan.")
@@ -156,7 +158,6 @@ class TestRoamingPlanAgent(unittest.TestCase):
     def test_out_of_scope_query(self):
         user_msg = "How's the weather in Tokyo?"
 
-    @unittest.skip("RoamingPlanAgent not implemented")
     def test_high_data_demand_real(self):
         user_msg = "Going to Malaysia, need 100GB for 2 weeks."
         at_least_plan_gb = 5 # we can adjust this threshold based on plan catalog
@@ -171,7 +172,7 @@ class TestRoamingPlanAgent(unittest.TestCase):
 
         # At least one plan should meet or exceed available high data (even if not 100GB)
         max_plan_data = max(plan["data_gb"] for plan in response["plans"])
-        self.assertGreaterEqual(max_plan_data, at_least_plan_gb, f'expected to find plan at least {at_least_plan_gb} GB. found only {max_plan_data}')  
+        self.assertGreaterEqual(max_plan_data, at_least_plan_gb, f'expected to find plan at least {at_least_plan_gb} GB. found only {max_plan_data}')
 
     @unittest.skip("RoamingPlanAgent not implemented")
     def test_high_data_demand(self):
@@ -185,9 +186,13 @@ class TestRoamingPlanAgent(unittest.TestCase):
     def test_purchase_rejection(self):
         user_msg = "No thanks"  # after plan shown
 
-    @unittest.skip("RoamingPlanAgent not implemented")
     def test_user_confirms_plan(self):
-        user_msg = "I'll take option 2"
+        self.agent.reset()
+        first = self.agent.step("I'm going to Japan for 3 days and need 2GB of data.")
+        self.assertIn("plans", first)
+        self.assertGreater(len(first["plans"]), 0)
+        confirm = self.agent.step("I'll take option 1")
+        self.assertEqual(confirm.get("selected_plan"), first["plans"][0])
 
     @unittest.skip("RoamingPlanAgent not implemented")
     def test_unexpected_utterance_mid_flow(self):
@@ -196,3 +201,4 @@ class TestRoamingPlanAgent(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
