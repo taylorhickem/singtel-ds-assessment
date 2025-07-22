@@ -9,6 +9,7 @@ from langchain.schema import SystemMessage, HumanMessage
 
 
 # constants --------------------------------------------------------------------
+LOGGING_LEVEL_DEFAULT = 1
 WELCOME_LINE = (
     "Roaming Plan Assistant\n"
     "I'm here to help you find the best roaming plan for your upcoming trip.\n"
@@ -16,90 +17,81 @@ WELCOME_LINE = (
 )
 REDIRECT_URL = "https://example.com/roaming-specialist"
 LLM_MODEL = "gpt-3.5-turbo"
+RELEVANT_THRESHOLD_DEFAULT = 0.33
 AGENT_INSTRUCTIONS = (
-    "You're an assistant that classifies user intent. "
-    "If the user is asking about mobile roaming, international travel SIMs, "
-    "or data/call/SMS plans for a trip abroad, respond with 'yes'. "
-    "Otherwise, respond with 'no'.\n\n"
+    "You're an assistant that determines how likely it is that a user is asking about mobile roaming, "
+    "international SIM cards, or travel-related data/call/SMS services.\n\n"
+    "First, explain your reasoning in 1 sentence.\n"
+    "Then output a relevance score between 0.0 and 1.0 on a new line, labeled as 'Score:'.\n"
     "Interpret generously. Include travel-related terms, misspellings, poor grammar, "
     "or references to specific places (cities, states, landmarks, etc).\n\n"
-    "Here are some examples:\n"
-    "\nUser: I'm going to Japan, do you have data plans?\nAssistant: yes"
-    "\nUser: I want to know about your roaming services.\nAssistant: yes"
-    "\nUser: How much is it to call from Thailand?\nAssistant: yes"
-    "\nUser: 我去马来西亚旅行三天。\nAssistant: no"
-    "\nUser: about 100GB \nAssistant: yes"
-    "\nUser: I'm bringing my laptop \nAssistant: yes"
-    "\nUser: I'm going to need a lot of data \nAssistant: yes"
-    "\nUser: the vatican \nAssistant: yes"
-    "\nUser: eight months \nAssistant: yes"
-    "\nUser: I'm bringing my laptop and expect to work remote \nAssistant: yes"
-    "\nUser: snorkeling in crystal clear waters\nAssistant: yes"
-    "\nUser: visiting museums about Medieval European history\nAssistant: yes"
-    "\nUser: attending a wedding in Bali\nAssistant: yes"
-    "\nUser: backpacking through Europe\nAssistant: yes"
-    "\nUser: vacationing with my family\nAssistant: yes"
-    "\nUser: sightseeing for a few weeks\nAssistant: yes"
-    "\nUser: remote work trip\nAssistant: yes"
-    "\nUser: I'm planning a retreat\nAssistant: yes"
-    "\nUser: I want a pony.\nAssistant: no"
-    "\nUser: Stonehenge\nAssistant: yes"
-    "\nUser: Paris\nAssistant: yes"
-    "\nUser: Langkawi\nAssistant: yes"
-    "\nUser: I need a lot of data\nAssistant: yes"
-    "\nUser: What's the weather like in KL?\nAssistant: no"
-)
-
-
-AGENT_INSTRUCTIONS = (
-    "You're an assistant that classifies user intent. "
-    "If the user is asking about mobile roaming, international travel SIMs, "
-    "or data/call/SMS plans for a trip abroad, respond with 'yes'. "
-    "Otherwise, respond with 'no'.\n\n"
-    "Consider a generous interpretation of something in the general vicinity of the topic and intention.\n"
-    "Allow for cases of misspellings or incorrect grammar\n"
-    "Consider any kind of geographic area or clue of a specific travel destination. A city, a landmark, a state, etc..\n"
     "Examples:\n"
     "User: I'm going to Japan, do you have data plans?\n"
-    "Assistant: yes\n"
-    "User: I want to know about your roaming services.\n"
-    "Assistant: yes\n"
-    "User: How much is it to call from Thailand?\n"
-    "Assistant: yes\n"
-    "User: I want a pony.\n"
-    "Assistant: no\n"
-    "我去马来西亚旅行三天。\n"
-    "Assistant: no\n"
-    "User: I'm bringing my laptop and expect to work remote\n"
-    "Assistant: yes"
-    "User: Maybe 100GB\n"
-    "Assistant: yes"
-    "User: I need a lot of data\n"
-    "Assistant: yes"
-    "User: eight months\n"
-    "Assistant: yes"
-    "User: Stonehenge\n"
-    "Assistant: yes"
+    "Reasoning: This user is clearly asking about international mobile service.\n"
+    "Score: 1.0\n\n"
+    "User: Vallhalla for a month\n"
+    "Reasoning: Vallhalla is not a real travel destination for mobile networks.\n"
+    "Score: 0.0\n\n"
+    "User: snorkeling in crystal clear waters\n"
+    "Reasoning: This suggests a travel scenario but needs further clarification to determine mobile needs.\n"
+    "Score: 0.6\n\n"
     "User: Paris\n"
-    "Assistant: yes"
-    "User: The vatican\n"
-    "Assistant: yes"
-    "User: Langkawi\n"
-    "Assistant: yes"
-    "User: Kosovo for a week.\n"
-    "Assistant: yes"
-    "User: I want a pony.\n"
-    "Assistant: no\n"
+    "Reasoning: Paris is a valid travel destination, implying potential roaming needs.\n"
+    "Score: 0.85\n\n"
+    "User: #我去马来西亚旅行三天。\n"
+    "Reasoning: Although it's a valid prompt when translated to English, we are limiting only to English.\n"
+    "Score: 0.0\n\n"
+    "User: Paris\n"
+    "Reasoning: Paris is a valid travel destination, implying potential roaming needs.\n"
+    "Score: 0.85\n\n"
     "User: What's the weather like in KL?\n"
-    "Assistant: no\n"
+    "Reasoning: KL is shorthand for Kuala Lumpur, Malaysia and is a valid travel destination, implying potential roaming needs.\n"
+    "Score: 0.85\n\n"
+    "User: Paris\n"
+    "Reasoning: Paris is a valid travel destination, implying potential roaming needs.\n"
+    "Score: 0.85\n\n"
+    "User: I'm hungry\n"
+    "Reasoning: This is clearly off topic.\n"
+    "Score: 0.0\n\n"
+    "User: I want a pony\n"
+    "Reasoning: This is clearly off topic\n"
+    "Score: 0.0\n\n"
+    "User: I need a lot of data\n"
+    "Reasoning: Mentions data so potentially relevant for a data plan.\n"
+    "Score: 0.7\n\n"
+    "User: remote work for 6 months\n"
+    "Reasoning: Remote working would have data plan needs so this is relevant.\n"
+    "Score: 0.8\n\n"
+    "User: visiting family\n"
+    "Reasoning: Visiting family is a type of travel and thus relevant.\n"
+    "Score: 0.85\n\n"
+    "User: I'm bringing my laptop\n"
+    "Reasoning: Suggestive of travel need more details to confirm.\n"
+    "Score: 0.6\n\n"
+    "User: I need a lot of data\n"
+    "Reasoning: They need data so thats relevant will need to prompt them further to get to specifics.\n"
+    "Score: 0.7\n\n"
+    "User: Unknown Soldier\n"
+    "Reasoning: Too vauge that could mean anything.\n"
+    "Score: 0.0\n\n"
+    "User: Tomb of the Unknown Soldier\n"
+    "Reasoning: Those are specific landmark destinations for travel, albeit there are more than one.\n"
+    "Score: 0.7\n\n"
+    "User: meditation in the Himalayas\n"
+    "Reasoning: A valid travel destination and thus relevant.\n"
+    "Score: 0.85\n\n"
 )
+
 
 # classes ----------------------------------------------------------------------------
 class RoamingPlanAgent:
 
-    def __init__(self, llm=None):
+    def __init__(self, llm=None, logging_level=None, relevant_threshold=None):        
         load_dotenv()
         self.llm = llm or ChatOpenAI(model=LLM_MODEL, temperature=0)
+        self.redirect_url = REDIRECT_URL
+        self.relevant_threshold = relevant_threshold or RELEVANT_THRESHOLD_DEFAULT
+        self.logging_level: int = logging_level or LOGGING_LEVEL_DEFAULT 
 
     def step(self, user_msg: str) -> dict:
         system = AGENT_INSTRUCTIONS
@@ -110,12 +102,22 @@ class RoamingPlanAgent:
             HumanMessage(content=prompt)
         ])
 
-        print(f'INFO. RAW LLM RESPONSE: \n {response.content}')
+        lines = response.content.strip().splitlines()
+        reason_line = next((line for line in lines if not line.lower().startswith("score:")), None)
+        score_line = next((line for line in lines if line.lower().startswith("score:")), None)
 
-        answer = response.content.strip().lower()
-        if "yes" in answer:
+        try:
+            score = float(score_line.split(":")[1].strip()) if score_line else 0.0
+        except Exception:
+            score = 0.0
+
+        if self.logging_level == 0:
+            print(f'INFO. LLM reasoning: {reason_line}')
+            print(f'INFO. LLM score: {score}')
+
+        if score > self.relevant_threshold:
             return {
-                "redirect": REDIRECT_URL,
+                "redirect": self.redirect_url,
                 "message": "Great, let me forward you on to my associate!"
             }
         else:

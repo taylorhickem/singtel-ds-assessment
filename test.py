@@ -110,112 +110,53 @@ class TestRoamingPlanRecommender(unittest.TestCase):
             )
 
 
-class TestRoamingPlanAgent(unittest.TestCase):
-    """Sample tests for the conversational Recommendation Agent.
-
-    The real ``RoamingPlanAgent`` is not yet implemented.  These tests mock the
-    expected ``agent.step`` method to illustrate how interaction logic might be
-    validated once the agent is available.
-    """
-
+class TestRoamingPlanIntentClassifier(unittest.TestCase):
     @classmethod
-    def setUp(cls):
-        # Placeholder agent stub. In future this should instantiate the real
-        # RoamingPlanAgent with access to RoamingPlanRecommender.
+    def setUpClass(cls):
         cls.agent = RoamingPlanAgent()
 
-    def test_valid_query(self):
-        """Valid query returns ranked plan options."""
-        user_msg = "I'm going to Japan for 3 days and need 2GB of data."
-        self.agent.reset()
-        response = self.agent.step(user_msg)
-        self.assertIn("plans", response)
-        self.assertGreater(len(response["plans"]), 0)
+    def assertIntentRedirects(self, user_input):
+        result = self.agent.step(user_input)
+        if 'redirect' not in result:
+            print(f'FAILED PROMPT: {user_input}')
+            print(f'AGENT RESPONSE: {result}')
+        self.assertIn('redirect', result, f"Expected redirect for: '{user_input}'")
+        self.assertEqual(result['redirect'], self.agent.redirect_url)
+        self.assertTrue(result['message'].lower().startswith("great"), f"Unexpected message: {result['message']}")
 
-    def test_invalid_country(self):
-        self.agent.reset()
-        response = self.agent.step("I'll be in Blorkistan.")
-        plans = response.get("plans", [])
-        error = response.get("error", "").lower()
-        self.assertEqual(plans, [], f'Expected empty response, got {plans}')
-        self.assertIn("blorkistan", error, f'Expected country not found error, got {error}')
+    def assertIntentRejected(self, user_input):
+        result = self.agent.step(user_input)
+        self.assertNotIn("redirect", result, f"Unexpected redirect for: '{user_input}'")
+        self.assertIn("clarify", result["message"].lower(), f"Unexpected message: {result['message']}")
 
-    def test_near_match_country(self):
-        """Agent clarifies close country names."""
-        user_msg = "I'm traveling to Korea."
-        self.agent.reset()
-        response = self.agent.step(user_msg)
-        self.assertIn("prompt", response)
-        self.assertEqual(self.agent.state.get("destination"), "Korea, Republic of")
+    def test_bulk_irrelevant_cases(self):
+        prompts = [
+            "Will I catch a cold if I am out in the rain too long?",
+            "Michael Jackson",
+            "Pete Rose",
+            "I want a pony",
+            "Mars for a year"
+        ]
+        for prompt in prompts:
+            with self.subTest(prompt=prompt):
+                self.assertIntentRejected(prompt)
 
-    def test_plan_query_prompt_duration_and_amount(self):
-        """Agent asks for missing duration/data when only destination given."""
-        user_msg = "Need data for Thailand."
-        self.agent.reset()
-        response = self.agent.step(user_msg)
-        self.assertIn("prompt", response)
-        self.assertIn("trip", response["prompt"].lower())
-
-    @unittest.skip("RoamingPlanAgent not implemented")
-    def test_non_numeric_near_duration(self):
-        user_msg = "I'll be there for a few moons."
-
-    @unittest.skip("RoamingPlanAgent not implemented")
-    def test_non_numeric_nonsense_duration(self):
-        user_msg = "I'll be there for a few spoons."
-
-    @unittest.skip("RoamingPlanAgent not implemented")
-    def test_out_of_scope_query(self):
-        user_msg = "How's the weather in Tokyo?"
-
-    def test_high_data_demand_real(self):
-        user_msg = "Going to Malaysia, need 100GB for 2 weeks."
-        at_least_plan_gb = 5 # we can adjust this threshold based on plan catalog
-        
-        self.agent.reset()
-        response = self.agent.step(user_msg)
-        
-        # Expect at least one plan to be returned
-        self.assertIsInstance(response, dict, f'Expected response as dict. response type {type(response)}')
-        self.assertIn("plans", response, f"expected a 'plans' key in response. key not found")
-        self.assertGreater(len(response["plans"]), 0, f'expected at least one plan, empty results')
-
-        # At least one plan should meet or exceed available high data (even if not 100GB)
-        max_plan_data = max(plan["data_gb"] for plan in response["plans"])
-        self.assertGreaterEqual(max_plan_data, at_least_plan_gb, f'expected to find plan at least {at_least_plan_gb} GB. found only {max_plan_data}')
-
-    @unittest.skip("RoamingPlanAgent not implemented")
-    def test_high_data_demand(self):
-        user_msg = "Going to Malaysia, need 100GB for 2 weeks."
-
-    @unittest.skip("RoamingPlanAgent not implemented")
-    def test_sms_only_request(self):
-        user_msg = "Going to Vietnam, only need SMS for 5 days."
-
-    @unittest.skip("RoamingPlanAgent not implemented")
-    def test_purchase_rejection(self):
-        user_msg = "No thanks"  # after plan shown
-
-    def test_user_confirms_plan(self):
-        self.agent.reset()
-        first = self.agent.step("I'm going to Japan for 3 days and need 2GB of data.")
-        self.assertIn("plans", first)
-        self.assertGreater(len(first["plans"]), 0)
-        confirm = self.agent.step("I'll take option 1")
-        self.assertEqual(confirm.get("selected_plan"), first["plans"][0])
-
-    def test_off_topic_exit(self):
-        """After repeated off-topic replies agent suggests contacting support."""
-        self.agent.reset()
-        self.agent.step("I want a pony")
-        self.agent.step("Still want a pony")
-        response = self.agent.step("pony again")
-        prompt = response.get("prompt", "").lower()
-        self.assertIn("support", prompt, f"expected escalation to support, got {response}")
-
-    @unittest.skip("RoamingPlanAgent not implemented")
-    def test_unexpected_utterance_mid_flow(self):
-        user_msg = "Nevermind, show me movie times"
+    def test_bulk_redirect_cases(self):
+        prompts = [
+            "Does it snow in DC this time of year?"
+            "Kosovo for a week",
+            "Langkawi",
+            "I want to visit Pete Rose Hall of Fame",
+            "I want to fulfill my Hajj. I am Muslim",
+            "I'm going to Stonehenge",
+            "snorkeling in crystal waters",
+            "France for a week",
+            "I'm going backpacking in the levant",
+            "remote work for 6 months"
+        ]
+        for prompt in prompts:
+            with self.subTest(prompt=prompt):
+                self.assertIntentRedirects(prompt)
 
 
 if __name__ == '__main__':
