@@ -204,6 +204,15 @@ class TestRoamingPlanAgent(unittest.TestCase):
         confirm = self.agent.step("I'll take option 1")
         self.assertEqual(confirm.get("selected_plan"), first["plans"][0])
 
+    def test_off_topic_exit(self):
+        """After repeated off-topic replies agent suggests contacting support."""
+        self.agent.reset()
+        self.agent.step("I want a pony")
+        self.agent.step("Still want a pony")
+        response = self.agent.step("pony again")
+        prompt = response.get("prompt", "").lower()
+        self.assertIn("support", prompt, f"expected escalation to support, got {response}")
+
     @unittest.skip("RoamingPlanAgent not implemented")
     def test_unexpected_utterance_mid_flow(self):
         user_msg = "Nevermind, show me movie times"
