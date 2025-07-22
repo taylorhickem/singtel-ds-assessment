@@ -1,11 +1,137 @@
 # Custom Agent
 This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent.md`
 
+## Test case, failed
+
+This is a failed test case, the agent did not handle the user input correctly
+
+```
+$ python -m cli_agent
+📱 Welcome to the Roaming Plan Assistant CLI
+Type 'exit' or 'quit' to leave the session.
+--------------------------------------------------
+👤 You: I want a pony
+
+
+> Entering new AgentExecutor chain...
+Hello! I can help you find the best roaming plan for your travel. To get started, please provide me with the following information:
+1. Where are you traveling to?
+2. How many days will you be there?
+3. What type of service do you need (data/calls/sms)?
+4. If you need data, how many gigabytes do you require?
+
+> Finished chain.
+🤖 Agent: Hello! I can help you find the best roaming plan for your travel. To get started, please provide me with the following information:
+1. Where are you traveling to?
+2. How many days will you be there?
+3. What type of service do you need (data/calls/sms)?
+4. If you need data, how many gigabytes do you require?
+👤 You: I want a pony
+
+
+> Entering new AgentExecutor chain...
+I'm here to assist you with finding the best roaming plan for your travel needs. To get started, could you please provide me with the following information:
+1. Where are you traveling to?
+2. How many days will you be there?
+3. What type of service do you need (data/calls/sms)?
+4. If you need data, how many gigabytes do you require?
+
+> Finished chain.
+🤖 Agent: I'm here to assist you with finding the best roaming plan for your travel needs. To get started, could you please provide me with the following information:
+1. Where are you traveling to?
+2. How many days will you be there?
+3. What type of service do you need (data/calls/sms)?
+4. If you need data, how many gigabytes do you require?
+👤 You: Blorkistan
+
+
+> Entering new AgentExecutor chain...
+I'm here to assist you with finding the best roaming plan for your travel needs. To proceed, could you please provide me with the following information:
+1. Where are you traveling to?
+2. How many days will you be there?
+3. What type of service do you need (data/calls/sms)?
+4. If you need data, how many gigabytes do you require?
+
+> Finished chain.
+🤖 Agent: I'm here to assist you with finding the best roaming plan for your travel needs. To proceed, could you please provide me with the following information:
+1. Where are you traveling to?
+2. How many days will you be there?
+3. What type of service do you need (data/calls/sms)?
+4. If you need data, how many gigabytes do you require?
+👤 You: Malaysia
+
+
+> Entering new AgentExecutor chain...
+
+Invoking: `roaming_plan_recommend` with `{'destination': 'Blorkistan', 'duration_days': 0, 'service_type': 'data', 'data_needed_gb': 0}`     
+
+
+Sorry, 'Blorkistan' is not a known travel destination. Could you clarify?I'm here to assist you with finding the best roaming plan for your travel needs. However, it seems like there might have been a misunderstanding. Could you please provide me with the correct destination you are traveling to?
+
+> Finished chain.
+🤖 Agent: I'm here to assist you with finding the best roaming plan for your travel needs. However, it seems like there might have been a misunderstanding. Could you please provide me with the correct destination you are traveling to?
+👤 You: Malaysia
+
+
+> Entering new AgentExecutor chain...
+
+Invoking: `roaming_plan_recommend` with `{'destination': 'Malaysia', 'duration_days': 5, 'service_type': 'data', 'data_needed_gb': 3}`       
+
+
+Here are your top recommended plans:
+1. 4.5GB for 5 days at S$4.00 (Zone 1)
+
+Please type 'Option 1', 'Option 2', etc. to select a plan.I recommend the following roaming plan for your trip to Malaysia:
+- 4.5GB for 5 days at S$4.00 (Zone 1)
+
+Please let me know if you would like to select this plan or if you need any further assistance.
+
+> Finished chain.
+🤖 Agent: I recommend the following roaming plan for your trip to Malaysia:
+- 4.5GB for 5 days at S$4.00 (Zone 1)
+
+Please let me know if you would like to select this plan or if you need any further assistance.
+👤 You:
+
+```
+
 ## Session logs
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
 ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 <HH>:<MM>
+
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-22 14:40
+for context, refer to 
+ - the failed test log in `/docs/0301_custom_agent.md` section ## Test case, failed
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `recommend_agent.chat_agent.RoamingPlanAgent` and `cli_agent.py`
+ - review the failed test cases and the design for the `RoamingPlanAgent`
+ - perform a complete diagnostics and identify each of the design features that were failed to implement in the conversation flow, there were several.
+ - for each failure, diagnose the cause in how the agent code was implented, and a resolution
+ - document your diagnostics and resolution strategy in a subsection of the failure test case ### diagnostics and ### resolution
+ - implement the fixes 
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 <HH>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] RoamingPlanAgent 2025-07-22 14:34
+validation and testing
+ - still failed, but now in a functional failure and not exceptions
+ - debugged requirements conflicts, rebuilt env with updated requirements
+ - added a cli interface `cli_agent.py` for direct interaction testing with chat agent
+ - added OpenAI_API_KEY to env variable with import using loadenv
+ - overwrite _tool_recommend()
+ - set verbose = True
+ - updated the Agent system message
+
+### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 13:04
 
 - Implemented LangChain-based `RoamingPlanAgent` using `ChatOpenAI` and
   `create_openai_functions_agent`.
@@ -16,7 +142,6 @@ session logs are timestamped to Singapore timezone in reverse chronological orde
 - Updated `step` method to return conversation state and handle plan selection.
 - Expanded tests to cover near-match country handling and prompting for missing
   trip details.
-
 
 ### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-22 13:02
 for context, refer to 

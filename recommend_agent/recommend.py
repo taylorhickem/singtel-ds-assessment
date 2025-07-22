@@ -210,3 +210,15 @@ class RoamingPlanRecommender(BaseHandler):
             raise ValueError(msg)
         
         return None
+
+    def get_destinations(self) -> dict:
+        """Returns a lookup dict mapping lowercase country names to canonical country names."""
+        if not self.db_connect():
+            return {}
+        try:
+            self.db.execute("SELECT country FROM destination")
+            rows = self.db.cursor.fetchall()
+            return {country.lower(): country for (country,) in rows}
+        except Exception as e:
+            self._exception_handle(msg="failed to fetch destinations", exception=e, is_fatal=False)
+            return {}

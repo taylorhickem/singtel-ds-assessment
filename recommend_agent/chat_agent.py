@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""Roaming Plan Recommendation Agent using LangChain
+"""
+
+# dependencies -------------------------------------------------------------------
 from typing import Optional
 import re
 import pandas as pd
@@ -5,7 +10,7 @@ from base import BaseHandler
 from .recommend import RoamingPlanRecommender
 
 # langchain imports
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import SystemMessage
@@ -14,6 +19,17 @@ from langchain.tools import StructuredTool
 from pydantic import BaseModel, Field
 
 
+# constants ---------------------------------------------------------------------------------------
+VERBOSE = True
+AGENT_SYSTEM_MESSAGE="""You are a helpful assistant that recommends roaming plans.
+    Ask the user questions to gather the following fields: "
+    destination, duration in days, service type (data/calls/sms), and data amount in GB if applicable.
+    Use the `roaming_plan_recommend` tool only once all required fields are collected.
+    If the user provides you with nonsense or irrelevant response, politely redirect them back on topic.
+    If after 3x failed attempts to redirect them, proceed to exit and suggest they contact Singtel support for further assistance.
+"""
+
+# classes ---------------------------------------------------------------------------------------
 class RecommendInput(BaseModel):
     destination: str = Field(..., description="Country where the user will travel")
     duration_days: int = Field(..., description="Trip duration in days")
@@ -36,8 +52,9 @@ class RoamingPlanAgent(BaseHandler):
             name="roaming_plan_recommend",
             description="Recommend roaming plans for a travel query",
             args_schema=RecommendInput,
-            return_direct=True,
+            return_direct=False,
         )
+
         self.agent_executor = self._init_agent() if self.llm else None
         self.reset()
         super().__init__()
@@ -50,12 +67,18 @@ class RoamingPlanAgent(BaseHandler):
 
     def _init_agent(self):
         prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content="You are a helpful assistant that recommends roaming plans. Use the roaming_plan_recommend tool when enough information is provided."),
+            SystemMessage(content=AGENT_SYSTEM_MESSAGE),
             MessagesPlaceholder(variable_name="chat_history"),
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ])
         agent = create_openai_functions_agent(self.llm, [self.tool], prompt)
-        return AgentExecutor(agent=agent, tools=[self.tool], memory=self.memory, verbose=False)
+        self.agent_executor = AgentExecutor(
+            agent=agent,
+            tools=[self.tool],
+            memory=self.memory,
+            verbose=VERBOSE 
+        )
+        return self.agent_executor
 
     def _tool_recommend(self, destination: str, duration_days: int, service_type: str = "data", data_needed_gb: Optional[float] = None):
         # update state from tool call
@@ -68,11 +91,7 @@ class RoamingPlanAgent(BaseHandler):
         return plans
 
     def _load_destinations(self):
-        try:
-            df = pd.read_csv('data/destination.csv')
-            self._dest_lookup = {c.lower(): c for c in df['country'].tolist()}
-        except Exception:
-            self._dest_lookup = {}
+        self._dest_lookup = self.recommender.get_destinations()
 
     def reset(self):
         """Clear conversation state."""
@@ -85,7 +104,7 @@ class RoamingPlanAgent(BaseHandler):
             'selected_plan': None,
         }
 
-    # ------------------------------------------------------------------ parsing
+    # parsing  ----------------------------------------------------------------
     def _parse_destination(self, text: str) -> str:
         match = re.search(r'(?:to|in|for) ([A-Za-z ]+?)(?:\b|,| for|$)', text)
         if match:
@@ -142,6 +161,27 @@ class RoamingPlanAgent(BaseHandler):
                 self.state['selected_plan'] = self.state['plans'][idx]
                 return {'selected_plan': self.state['selected_plan'], 'state': self.state}
 
+        # confirm selection
+        if msg.lower() == "confirm" and self.state.get("selected_plan"):
+            plan = self.state["selected_plan"]
+            return {
+                "confirmation": f"You have confirmed the plan: {plan}. Redirecting to purchase...",
+                "plan_payload": {
+                    "plan": plan,
+                    "user_id": "<session_token>"
+                },
+                "state": self.state
+            }
+
+        # cancel selection
+        if msg.lower() == "cancel":
+            self.state["selected_plan"] = None
+            return {
+                "prompt": "Okay, feel free to select another option.",
+                "state": self.state
+            }
+
+        # LLM logic
         if self.agent_executor:
             try:
                 result = self.agent_executor.invoke({'input': msg})
@@ -196,3 +236,34 @@ class RoamingPlanAgent(BaseHandler):
             return {'plans': [], 'error': plans[0]['error'], 'state': self.state}
         return {'plans': plans, 'state': self.state}
 
+    def _tool_recommend(self, destination: str, duration_days: int, service_type: str = "data", data_needed_gb: Optional[float] = None):
+        # Simple input validation
+        known_destinations = self.recommender.get_destinations()
+        if destination.lower() not in known_destinations:
+            return f"Sorry, '{destination}' is not a known travel destination. Could you clarify?"
+
+        if duration_days < 1 or duration_days > 90:
+            return f"That doesn't look like a valid trip duration. Please specify a trip between 1 and 90 days."
+
+        if service_type == "data" and (data_needed_gb is None or data_needed_gb <= 0):
+            return "Please specify how much data you expect to use, in GB."
+
+        # Store in state
+        self.state["destination"] = destination
+        self.state["duration_days"] = duration_days
+        self.state["service_type"] = service_type
+        self.state["data_needed_gb"] = data_needed_gb
+
+        plans = self.recommender.recommend(destination, duration_days, service_type, data_needed_gb)
+        self.state["plans"] = plans
+
+        if not plans or "error" in plans[0]:
+            return plans[0].get("error", "No plans found.")
+
+        lines = ["Here are your top recommended plans:"]
+        for i, plan in enumerate(plans, 1):
+            lines.append(
+                f"{i}. {plan['data_gb']}GB for {plan['duration_days']} days at S${plan['price_sgd']:.2f} (Zone {plan['zone']})"
+            )
+        lines.append("\nPlease type 'Option 1', 'Option 2', etc. to select a plan.")
+        return "\n".join(lines)
