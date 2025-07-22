@@ -4,17 +4,68 @@ import pandas as pd
 from base import BaseHandler
 from .recommend import RoamingPlanRecommender
 
+# langchain imports
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import ConversationBufferMemory
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.schema import SystemMessage
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.tools import StructuredTool
+from pydantic import BaseModel, Field
+
+
+class RecommendInput(BaseModel):
+    destination: str = Field(..., description="Country where the user will travel")
+    duration_days: int = Field(..., description="Trip duration in days")
+    service_type: str = Field("data", description="Service type: data, calls or sms")
+    data_needed_gb: Optional[float] = Field(None, description="Data needed in GB if service is data")
+
 
 class RoamingPlanAgent(BaseHandler):
-    """Lightweight conversational agent for roaming plan queries."""
+    """Conversational roaming plan assistant implemented with LangChain."""
 
-    def __init__(self, recommender: RoamingPlanRecommender=None):
+    def __init__(self, recommender: RoamingPlanRecommender = None, llm: ChatOpenAI = None):
         self.recommender = recommender or RoamingPlanRecommender()
         # ensure database is available
         self.recommender.db_build()
         self._load_destinations()
+        self.llm = llm or self._default_llm()
+        self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+        self.tool = StructuredTool.from_function(
+            func=self._tool_recommend,
+            name="roaming_plan_recommend",
+            description="Recommend roaming plans for a travel query",
+            args_schema=RecommendInput,
+            return_direct=True,
+        )
+        self.agent_executor = self._init_agent() if self.llm else None
         self.reset()
         super().__init__()
+
+    def _default_llm(self):
+        try:
+            return ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+        except Exception:
+            return None
+
+    def _init_agent(self):
+        prompt = ChatPromptTemplate.from_messages([
+            SystemMessage(content="You are a helpful assistant that recommends roaming plans. Use the roaming_plan_recommend tool when enough information is provided."),
+            MessagesPlaceholder(variable_name="chat_history"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ])
+        agent = create_openai_functions_agent(self.llm, [self.tool], prompt)
+        return AgentExecutor(agent=agent, tools=[self.tool], memory=self.memory, verbose=False)
+
+    def _tool_recommend(self, destination: str, duration_days: int, service_type: str = "data", data_needed_gb: Optional[float] = None):
+        # update state from tool call
+        self.state["destination"] = destination
+        self.state["duration_days"] = duration_days
+        self.state["service_type"] = service_type
+        self.state["data_needed_gb"] = data_needed_gb
+        plans = self.recommender.recommend(destination, duration_days, service_type, data_needed_gb)
+        self.state["plans"] = plans
+        return plans
 
     def _load_destinations(self):
         try:
@@ -36,7 +87,7 @@ class RoamingPlanAgent(BaseHandler):
 
     # ------------------------------------------------------------------ parsing
     def _parse_destination(self, text: str) -> str:
-        match = re.search(r'(?:to|in) ([A-Za-z ,\'\-]+)', text)
+        match = re.search(r'(?:to|in|for) ([A-Za-z ]+?)(?:\b|,| for|$)', text)
         if match:
             dest = match.group(1).strip()
             return dest
@@ -83,6 +134,26 @@ class RoamingPlanAgent(BaseHandler):
         """Process one user message and return agent response state."""
         msg = user_message.strip()
 
+        # check if user selected a plan
+        opt = re.search(r'option\s*(\d+)', msg.lower())
+        if opt and self.state.get('plans'):
+            idx = int(opt.group(1)) - 1
+            if 0 <= idx < len(self.state['plans']):
+                self.state['selected_plan'] = self.state['plans'][idx]
+                return {'selected_plan': self.state['selected_plan'], 'state': self.state}
+
+        if self.agent_executor:
+            try:
+                result = self.agent_executor.invoke({'input': msg})
+                self.state['last_response'] = result.get('output', '')
+                return {'response': self.state['last_response'], 'state': self.state}
+            except Exception as e:
+                self._exception_handle(msg='LLM agent failed', exception=e, is_fatal=False)
+
+        # fallback regex parsing
+        return self._regex_step(msg)
+
+    def _regex_step(self, msg: str) -> dict:
         dest_raw = self._parse_destination(msg)
         if dest_raw:
             self.state['destination'] = dest_raw
@@ -99,31 +170,21 @@ class RoamingPlanAgent(BaseHandler):
         if service:
             self.state['service_type'] = service
 
-        # plan selection
-        opt = re.search(r'option\s*(\d+)', msg.lower())
-        if opt and self.state.get('plans'):
-            idx = int(opt.group(1)) - 1
-            if 0 <= idx < len(self.state['plans']):
-                self.state['selected_plan'] = self.state['plans'][idx]
-                return {'selected_plan': self.state['selected_plan']}
-
         if self.state['destination']:
             canonical = self._canonical_destination(self.state['destination'])
             if not canonical:
                 err = f'no zone found for {self.state["destination"]}'
                 self.state['plans'] = []
-                return {'plans': [], 'error': err}
+                return {'plans': [], 'error': err, 'state': self.state}
             self.state['destination'] = canonical
 
-        # gather missing info prompts
-        if self.state['destination'] is None:
-            return {'prompt': 'Which country will you visit?'}
+        if self.state['destination'] == '':
+            return {'prompt': 'Which country will you visit?', 'state': self.state}
         if self.state['duration_days'] is None:
-            return {'prompt': 'How long is your trip in days?'}
+            return {'prompt': 'How long is your trip in days?', 'state': self.state}
         if self.state['service_type'] == 'data' and self.state['data_needed_gb'] is None:
-            return {'prompt': 'How much data do you need in GB?'}
+            return {'prompt': 'How much data do you need in GB?', 'state': self.state}
 
-        # ready to recommend
         plans = self.recommender.recommend(
             destination=self.state['destination'],
             duration_days=self.state['duration_days'],
@@ -132,6 +193,6 @@ class RoamingPlanAgent(BaseHandler):
         )
         self.state['plans'] = plans
         if plans and 'error' in plans[0]:
-            return {'plans': [], 'error': plans[0]['error']}
-        return {'plans': plans}
+            return {'plans': [], 'error': plans[0]['error'], 'state': self.state}
+        return {'plans': plans, 'state': self.state}
 

@@ -7,6 +7,16 @@ session logs are timestamped to Singapore timezone in reverse chronological orde
 
 ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 <HH>:<MM>
 
+- Implemented LangChain-based `RoamingPlanAgent` using `ChatOpenAI` and
+  `create_openai_functions_agent`.
+- Added structured tool wrapper around `RoamingPlanRecommender` to update agent
+  state when invoked.
+- Added fallback regex logic when no LLM is configured to keep tests runnable
+  offline.
+- Updated `step` method to return conversation state and handle plan selection.
+- Expanded tests to cover near-match country handling and prompting for missing
+  trip details.
+
 
 ### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-22 13:02
 for context, refer to 
