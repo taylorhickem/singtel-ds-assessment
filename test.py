@@ -136,15 +136,21 @@ class TestRoamingPlanAgent(unittest.TestCase):
         self.assertEqual(plans, [], f'Expected empty response, got {plans}')
         self.assertIn("blorkistan", error, f'Expected country not found error, got {error}')
 
-    @unittest.skip("RoamingPlanAgent not implemented")
     def test_near_match_country(self):
         """Agent clarifies close country names."""
         user_msg = "I'm traveling to Korea."
+        self.agent.reset()
+        response = self.agent.step(user_msg)
+        self.assertIn("prompt", response)
+        self.assertEqual(self.agent.state.get("destination"), "Korea, Republic of")
 
-    @unittest.skip("RoamingPlanAgent not implemented")
     def test_plan_query_prompt_duration_and_amount(self):
         """Agent asks for missing duration/data when only destination given."""
         user_msg = "Need data for Thailand."
+        self.agent.reset()
+        response = self.agent.step(user_msg)
+        self.assertIn("prompt", response)
+        self.assertIn("trip", response["prompt"].lower())
 
     @unittest.skip("RoamingPlanAgent not implemented")
     def test_non_numeric_near_duration(self):

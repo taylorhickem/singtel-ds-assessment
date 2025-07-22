@@ -132,6 +132,9 @@ class RoamingPlanRecommender(BaseHandler):
                 if interpolated:
                     candidates = [interpolated]
 
+            if not candidates:
+                candidates = plans
+
             score_results = [
                 (self._score_plan(p, zone, service_type, data_needed_gb), p)
                 for p in candidates
@@ -192,8 +195,6 @@ class RoamingPlanRecommender(BaseHandler):
 
     def _score_plan(self, plan: dict, zone: int, service: str, data_needed: float) -> Optional[float]:
         if service == "data":
-            if data_needed and plan['data_gb'] < data_needed:
-                return LARGE_GB
             return plan['data_gb']
         
         elif service == "calls":
