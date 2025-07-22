@@ -5,6 +5,29 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
+### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 <HH>:<MM>
+
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-22 12:57
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `recommend_agent.chat_agent.RoamingPlanAgent`
+ - review the test cases and the design for the `RoamingPlanAgent`
+ - take note that the design implementation is conversational LLM OpenAI `gpt-3.5-turbo`, using the `recommend_agent.recommend.RoamingPlanRecommender` as a tool. The current implementation is based on regex, and would have difficulty handling a conversation with a real human interface.
+ - implement the agent as a class using LangChain package, taking into consideration the test cases, design aims of exposing the state, language interface between the user and the plan recommender tool 
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 <HH>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] RoamingPlanAgent review 2025-07-22 12:52
+RoamingPlanAgent review
+ - implemented using regex, not LLM
+
 ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-21 22:04
 
 - Implemented `RoamingPlanAgent` with stateful `step` method parsing destination,
@@ -12,6 +35,7 @@ session logs are timestamped to Singapore timezone in reverse chronological orde
 - Integrated agent with `RoamingPlanRecommender` and basic plan selection logic.
 - Updated `test.py` to exercise valid query, invalid country, high data demand
   and plan confirmation scenarios without skips.
+
 ### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-21 22:00
 for context, refer to 
  - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`

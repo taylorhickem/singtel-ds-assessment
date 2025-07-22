@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Optional
 import re
 import pandas as pd
 from base import BaseHandler
@@ -8,7 +8,7 @@ from .recommend import RoamingPlanRecommender
 class RoamingPlanAgent(BaseHandler):
     """Lightweight conversational agent for roaming plan queries."""
 
-    def __init__(self, recommender: RoamingPlanRecommender | None = None):
+    def __init__(self, recommender: RoamingPlanRecommender=None):
         self.recommender = recommender or RoamingPlanRecommender()
         # ensure database is available
         self.recommender.db_build()
@@ -26,7 +26,7 @@ class RoamingPlanAgent(BaseHandler):
     def reset(self):
         """Clear conversation state."""
         self.state = {
-            'destination': None,
+            'destination': '',
             'duration_days': None,
             'service_type': 'data',
             'data_needed_gb': None,
@@ -35,22 +35,22 @@ class RoamingPlanAgent(BaseHandler):
         }
 
     # ------------------------------------------------------------------ parsing
-    def _parse_destination(self, text: str) -> str | None:
+    def _parse_destination(self, text: str) -> str:
         match = re.search(r'(?:to|in) ([A-Za-z ,\'\-]+)', text)
         if match:
             dest = match.group(1).strip()
             return dest
-        return None
+        return ''
 
-    def _canonical_destination(self, dest: str) -> str | None:
+    def _canonical_destination(self, dest: str) -> str:
         dest_lc = dest.lower()
         if dest_lc in self._dest_lookup:
             return self._dest_lookup[dest_lc]
         if dest_lc == 'korea':
             return 'Korea, Republic of'
-        return None
+        return ''
 
-    def _parse_duration(self, text: str) -> int | None:
+    def _parse_duration(self, text: str) -> Optional[int]:
         m = re.search(r'(\d+)\s*(day|days|week|weeks|month|months)', text)
         if m:
             num = int(m.group(1))
@@ -62,13 +62,13 @@ class RoamingPlanAgent(BaseHandler):
             return num
         return None
 
-    def _parse_data_amount(self, text: str) -> float | None:
+    def _parse_data_amount(self, text: str) -> Optional[float]:
         m = re.search(r'(\d+(?:\.\d+)?)\s*gb', text.lower())
         if m:
             return float(m.group(1))
         return None
 
-    def _parse_service_type(self, text: str) -> str | None:
+    def _parse_service_type(self, text: str) -> str:
         txt = text.lower()
         if 'sms' in txt:
             return 'sms'
@@ -76,7 +76,7 @@ class RoamingPlanAgent(BaseHandler):
             return 'calls'
         if 'data' in txt:
             return 'data'
-        return None
+        return ''
 
     # ---------------------------------------------------------------- interaction
     def step(self, user_message: str) -> dict:
