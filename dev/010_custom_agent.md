@@ -95,11 +95,33 @@ Please let me know if you would like to select this plan or if you need any furt
 
 ```
 
+### diagnostics
+
+The conversation failed to implement several workflow features from the design:
+
+1. **Off-topic handling** – User messages like "I want a pony" were not detected
+   as irrelevant, so the agent kept repeating the same prompt.
+2. **Validation loop** – The tool was invoked with `Blorkistan` and missing
+   duration/data even though inputs were incomplete.
+3. **Results templating and confirmation** – The plan list was printed but the
+   agent never progressed to confirmation or purchase redirection.
+
+These issues stem from missing state tracking for off-topic counts, duplicate
+`_tool_recommend` implementations and lack of checks before calling the tool.
+
+### resolution
+
+Implemented a single `_tool_recommend` with input validation and state updates,
+added an `off_topic_count` field with exit logic after three irrelevant replies,
+and reset the counter whenever valid progress is made. The `step` method now
+monitors unchanged state to detect off-topic responses and returns a support
+message when the threshold is reached.
+
 ## Session logs
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
-### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 <HH>:<MM>
+### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 14:43
 
 
 ### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-22 14:40

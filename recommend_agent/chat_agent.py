@@ -5,7 +5,6 @@
 # dependencies -------------------------------------------------------------------
 from typing import Optional
 import re
-import pandas as pd
 from base import BaseHandler
 from .recommend import RoamingPlanRecommender
 
@@ -80,15 +79,6 @@ class RoamingPlanAgent(BaseHandler):
         )
         return self.agent_executor
 
-    def _tool_recommend(self, destination: str, duration_days: int, service_type: str = "data", data_needed_gb: Optional[float] = None):
-        # update state from tool call
-        self.state["destination"] = destination
-        self.state["duration_days"] = duration_days
-        self.state["service_type"] = service_type
-        self.state["data_needed_gb"] = data_needed_gb
-        plans = self.recommender.recommend(destination, duration_days, service_type, data_needed_gb)
-        self.state["plans"] = plans
-        return plans
 
     def _load_destinations(self):
         self._dest_lookup = self.recommender.get_destinations()
@@ -102,6 +92,7 @@ class RoamingPlanAgent(BaseHandler):
             'data_needed_gb': None,
             'plans': [],
             'selected_plan': None,
+            'off_topic_count': 0,
         }
 
     # parsing  ----------------------------------------------------------------
@@ -191,7 +182,18 @@ class RoamingPlanAgent(BaseHandler):
                 self._exception_handle(msg='LLM agent failed', exception=e, is_fatal=False)
 
         # fallback regex parsing
-        return self._regex_step(msg)
+        prev_state = self.state.copy()
+        result = self._regex_step(msg)
+        if 'prompt' in result and self.state == prev_state:
+            self.state['off_topic_count'] += 1
+            if self.state['off_topic_count'] >= 3:
+                return {
+                    'prompt': 'It seems I cannot assist further. Please contact Singtel support for help.',
+                    'state': self.state
+                }
+        else:
+            self.state['off_topic_count'] = 0
+        return result
 
     def _regex_step(self, msg: str) -> dict:
         dest_raw = self._parse_destination(msg)
