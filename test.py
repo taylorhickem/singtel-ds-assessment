@@ -6,7 +6,7 @@
 import unittest
 from recommend_agent.recommend import RoamingPlanRecommender
 from recommend_agent import roaming_plans
-from recommend_agent.chat_agent import RoamingPlanAgent
+from recommend_agent.chat_agent import RoamingIntentClassifier
 
 
 # constants ---------------------------------------------------------------------------------------------------
@@ -113,21 +113,15 @@ class TestRoamingPlanRecommender(unittest.TestCase):
 class TestRoamingPlanIntentClassifier(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.agent = RoamingPlanAgent()
+        cls.classifier = RoamingIntentClassifier()
 
     def assertIntentRedirects(self, user_input):
-        result = self.agent.step(user_input)
-        if 'redirect' not in result:
-            print(f'FAILED PROMPT: {user_input}')
-            print(f'AGENT RESPONSE: {result}')
-        self.assertIn('redirect', result, f"Expected redirect for: '{user_input}'")
-        self.assertEqual(result['redirect'], self.agent.redirect_url)
-        self.assertTrue(result['message'].lower().startswith("great"), f"Unexpected message: {result['message']}")
+        result = self.classifier.classify(user_input)
+        self.assertTrue(result.get('redirect', False), f"Expected redirect=True, instead received {result} from {user_input}")
 
     def assertIntentRejected(self, user_input):
-        result = self.agent.step(user_input)
-        self.assertNotIn("redirect", result, f"Unexpected redirect for: '{user_input}'")
-        self.assertIn("clarify", result["message"].lower(), f"Unexpected message: {result['message']}")
+        result = self.classifier.classify(user_input)
+        self.assertFalse(result.get('redirect', True), f"Expected redirect=False, instead received {result} from {user_input}")
 
     def test_bulk_irrelevant_cases(self):
         prompts = [

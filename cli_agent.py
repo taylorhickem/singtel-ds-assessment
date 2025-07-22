@@ -7,7 +7,7 @@ from recommend_agent.chat_agent import DialogueManager
 
 # entry point ---------------------------------------------------
 def run():
-    DialogueManager().run_cli()
+    DialogueManager().run()
 
 
 if __name__ == "__main__":

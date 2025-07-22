@@ -10,14 +10,14 @@ from langchain.schema import SystemMessage, HumanMessage
 
 # constants --------------------------------------------------------------------
 LOGGING_LEVEL_DEFAULT = 1
-WELCOME_LINE = (
+WELCOME_MESSAGE = (
     "Roaming Plan Assistant\n"
     "I'm here to help you find the best roaming plan for your upcoming trip.\n"
     "To get started, just let me know where you're traveling and for how long is your trip?"
 )
 REDIRECT_URL = "https://example.com/roaming-specialist"
-LLM_MODEL = "gpt-3.5-turbo"
-RELEVANT_THRESHOLD_DEFAULT = 0.33
+LLM_MODEL_DEFAULT = "gpt-3.5-turbo"
+RELEVANT_THRESHOLD_DEFAULT = 0.25
 AGENT_INSTRUCTIONS = (
     "You're an assistant that determines how likely it is that a user is asking about mobile roaming, "
     "international SIM cards, or travel-related data/call/SMS services.\n\n"
@@ -84,75 +84,129 @@ AGENT_INSTRUCTIONS = (
 
 
 # classes ----------------------------------------------------------------------------
-class RoamingPlanAgent:
+class BaseLLMIntentClassifier(BaseHandler):
+    """
+    A reusable base class for LLM-based binary or scored intent classification.
 
-    def __init__(self, llm=None, logging_level=None, relevant_threshold=None):        
+    Subclasses should supply:
+    - a system prompt (instructions + examples)
+    - an optional score threshold (default 0.5)
+    """
+
+    def __init__(self, llm=None, llm_model='', instructions=None, threshold=None, logging_level=None):
         load_dotenv()
-        self.llm = llm or ChatOpenAI(model=LLM_MODEL, temperature=0)
-        self.redirect_url = REDIRECT_URL
-        self.relevant_threshold = relevant_threshold or RELEVANT_THRESHOLD_DEFAULT
-        self.logging_level: int = logging_level or LOGGING_LEVEL_DEFAULT 
+        self.llm_model = llm_model or LLM_MODEL_DEFAULT
+        self.llm = llm or ChatOpenAI(model=self.llm_model, temperature=0)
+        self.instructions = instructions
+        self.threshold: float = threshold or RELEVANT_THRESHOLD_DEFAULT
+        self.logging_level = logging_level or LOGGING_LEVEL_DEFAULT
 
-    def step(self, user_msg: str) -> dict:
-        system = AGENT_INSTRUCTIONS
-        prompt = f"User: {user_msg.strip()}"
-
+    def classify(self, user_input: str) -> dict:
+        """
+        Runs LLM classification on the given input.
+        Returns:
+            dict: {
+                "score": float,
+                "reason": str,
+                "redirect": bool
+            }
+        """
         response = self.llm.invoke([
-            SystemMessage(content=system),
-            HumanMessage(content=prompt)
+            SystemMessage(content=self.instructions),
+            HumanMessage(content=user_input.strip())
         ])
+        text = response.content.strip()
+        lines = text.splitlines()
 
-        lines = response.content.strip().splitlines()
-        reason_line = next((line for line in lines if not line.lower().startswith("score:")), None)
-        score_line = next((line for line in lines if line.lower().startswith("score:")), None)
+        reason = next((l for l in lines if l and not l.lower().startswith("score:")), "[no reasoning]")
+        score_line = next((l for l in lines if l.lower().startswith("score:")), "Score: 0.0")
 
         try:
-            score = float(score_line.split(":")[1].strip()) if score_line else 0.0
+            score = float(score_line.split(":")[1].strip())
         except Exception:
             score = 0.0
 
-        if self.logging_level == 0:
-            print(f'INFO. LLM reasoning: {reason_line}')
-            print(f'INFO. LLM score: {score}')
+        return {
+            "reason": reason,
+            "score": score,
+            "redirect": score >= self.threshold
+        }
 
-        if score > self.relevant_threshold:
+
+class RoamingIntentClassifier(BaseLLMIntentClassifier):
+    """
+    A specialized intent classifier that detects roaming/mobile travel-related requests.
+    """
+
+    def __init__(self, llm=None, llm_model='', threshold=None, logging_level=None):
+        super().__init__(
+            llm_model=llm_model,
+            llm=llm,
+            instructions=AGENT_INSTRUCTIONS,
+            threshold=threshold,
+            logging_level=logging_level
+        )
+
+
+class DialogueManager(BaseHandler):
+    """
+    Self-contained conversation manager for CLI interaction.
+    Handles classification, clarification, and optional redirect.
+    """
+
+    def __init__(self, welcome_message='', redirect_url=None, 
+                 intent_classifier_llm_model='', intent_classifier_threshold='', logging_level=None):
+        self.welcome_message = welcome_message or WELCOME_MESSAGE
+        self.redirect_url = redirect_url or REDIRECT_URL
+        self.logging_level = logging_level or LOGGING_LEVEL_DEFAULT
+        self.intent_classifier_llm_model = intent_classifier_llm_model or LLM_MODEL_DEFAULT
+        self.intent_classifier_threshold = intent_classifier_threshold or RELEVANT_THRESHOLD_DEFAULT
+        self.classifier = RoamingIntentClassifier(
+            llm_model=self.intent_classifier_llm_model, 
+            logging_level=self.logging_level,
+            threshold=self.intent_classifier_threshold
+            )
+
+    def step(self, user_input: str) -> dict:
+        """
+        Classify a single input. Returns response message and optional redirect.
+        """
+        result = self.classifier.classify(user_input)
+
+        if self.logging_level == 0:
+            print(f"Reason: {result['reason']}")
+            print(f"Score: {result['score']}")
+
+        if result["redirect"]:
             return {
-                "redirect": self.redirect_url,
-                "message": "Great, let me forward you on to my associate!"
+                "message": "Great, let me forward you on to my associate!",
+                "redirect": self.redirect_url
             }
         else:
             return {
                 "message": "I'm here to help with roaming plans. Could you clarify your request?"
             }
 
-
-class DialogueManager(BaseHandler):
-    """Handles full CLI interaction with the RoamingPlanAgent."""
-
-    def __init__(self, agent=None):
-        self.agent = agent or RoamingPlanAgent()
-        self.state = {}
-
-    def step(self, msg: str) -> dict:
-        result = self.agent.step(msg)
-        self.state.update(result)
-        return result
-
-    def run_cli(self):
-        print(WELCOME_LINE)
-        print("Type 'exit' to quit.\n")
+    def run(self):
+        """
+        Launch the full CLI interaction loop.
+        """
+        print(self.welcome_message)
 
         while True:
             user_input = input("👤 You: ").strip()
-            if user_input.lower() in ("exit", "quit"):
+            if user_input.lower() in {"exit", "quit"}:
                 print("👋 Goodbye!")
                 break
 
-            result = self.step(user_input)
+            response = self.step(user_input)
+            print(f"Agent: {response['message']}")
 
-            if "redirect" in result:
-                print(result["message"])
-                print(result["redirect"])
+            if "redirect" in response:
+                print(response["redirect"])
                 break
-            else:
-                print(result["message"])
+
+
+class RoamingPlanAgent(BaseHandler):
+    def __init__(self):
+        pass
