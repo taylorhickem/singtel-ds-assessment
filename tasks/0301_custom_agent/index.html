@@ -399,6 +399,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#language-aware-semantic-interpreter-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Language-aware Semantic Interpreter Features
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ux-workflow-for-roaming-plan-recommendation-agent" class="md-nav__link">
     <span class="md-ellipsis">
       UX Workflow for Roaming Plan Recommendation Agent
@@ -541,9 +550,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sample-python-script-for-plans-database-tool" class="md-nav__link">
+  <a href="#test-cases" class="md-nav__link">
     <span class="md-ellipsis">
-      Sample python script for Plans Database Tool
+      Test cases
     </span>
   </a>
   
@@ -693,6 +702,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#language-aware-semantic-interpreter-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Language-aware Semantic Interpreter Features
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ux-workflow-for-roaming-plan-recommendation-agent" class="md-nav__link">
     <span class="md-ellipsis">
       UX Workflow for Roaming Plan Recommendation Agent
@@ -835,9 +853,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sample-python-script-for-plans-database-tool" class="md-nav__link">
+  <a href="#test-cases" class="md-nav__link">
     <span class="md-ellipsis">
-      Sample python script for Plans Database Tool
+      Test cases
     </span>
   </a>
   
@@ -887,7 +905,7 @@ billing dispute classifier) but the focus is on demonstrating one complete
 example.</p>
 <h2 id="tool-implementation">Tool implementation</h2>
 <ul>
-<li>Mock data stored in a small CSV is loaded with <strong>pandas</strong>.</li>
+<li>Mock data is loaded from CSV files to an <strong>SQLite</strong> database.</li>
 <li>Business logic is implemented as a Python function that accepts structured
   input (destination, data usage, travel duration) and returns a recommended
   plan with reasoning.</li>
@@ -906,6 +924,17 @@ example.</p>
 <p>This design keeps the tool logic separate from the agent so that more telco
 utilities can be added easily. Mock data keeps the implementation simple while
 showing how a real data source would be integrated.</p>
+<h2 id="language-aware-semantic-interpreter-features">Language-aware Semantic Interpreter Features</h2>
+<p>To fulfill the chat agent's role as a <strong>language-aware interpreter</strong> between user inputs and the RoamingPlanRecommender (RPR) tool, the following design features are included:</p>
+<ul>
+<li><strong>Natural Language Understanding:</strong> The agent uses the LLM to extract and normalize structured fields (e.g., destination, duration, service type, data amount) from freeform text.</li>
+<li><strong>Progressive Slot Filling:</strong> It tracks missing values and engages in a retry loop until all required fields are gathered.</li>
+<li><strong>Validation Feedback Loop:</strong> Invalid values (e.g., unknown country or non-numeric duration) are flagged with helpful messages, prompting retry until all inputs are valid for RPR.</li>
+<li><strong>Structured RPR Call:</strong> Once validated, inputs are passed in structured format to RPR (destination, duration_days, service_type, data_needed_gb).</li>
+<li><strong>Results Templating:</strong> Agent formats the RPR shortlist using ranked output and includes pricing, usage limits, and pros/cons.</li>
+<li><strong>Plan Confirmation Flow:</strong> Agent asks user to confirm preferred plan and whether they want to proceed to purchase.</li>
+<li><strong>Purchase Redirect Payload:</strong> Upon confirmation, the agent generates a structured JSON payload and initiates redirection to a URL with this plan for purchase.</li>
+</ul>
 <h2 id="ux-workflow-for-roaming-plan-recommendation-agent">UX Workflow for Roaming Plan Recommendation Agent</h2>
 <p>This section outlines the user experience (UX) workflow and agent control flow for recommending roaming plans based on natural language inputs. The flow is implemented using LangChain's <code>AgentExecutor</code> framework, integrated with a structured roaming plan database interface.</p>
 <p>The goal of the agent is to assist users in selecting the most suitable roaming plan for their travel needs. The system supports natural English input, handles out-of-scope queries gracefully, and guides the user step-by-step through a structured interaction.</p>
@@ -993,65 +1022,85 @@ showing how a real data source would be integrated.</p>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;plan&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;zone&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Zone 1&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;zone&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;destination&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Malaysia&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;validity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1 day&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1GB&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;price&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;S$1&quot;</span>
+<span class="w">    </span><span class="nt">&quot;duration_days&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;data_gb&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;price_sg&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span>
 <span class="w">  </span><span class="p">},</span>
 <span class="w">  </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;session_or_user_token&gt;&quot;</span>
 <span class="p">}</span>
 </code></pre></div>
-<h3 id="sample-python-script-for-plans-database-tool">Sample python script for Plans Database Tool</h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># recommend_agent/tools.py</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
-
-<span class="c1"># Load the roaming plan dataset</span>
-<span class="n">PLANS_CSV_PATH</span> <span class="o">=</span> <span class="s2">&quot;data/roaming_plans.csv&quot;</span>
-<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">PLANS_CSV_PATH</span><span class="p">)</span>
-
-<span class="nd">@tool</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">plans_db_tool</span><span class="p">(</span><span class="n">destination</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">duration</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;1 day&quot;</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Recommends the top 3 roaming plans for a given destination, duration, and service type.</span>
-<span class="sd">    Accepts:</span>
-<span class="sd">      - destination: country name</span>
-<span class="sd">      - duration: pass duration (e.g., &quot;1 day&quot;, &quot;3 days&quot;)</span>
-<span class="sd">      - service_type: one of &quot;data&quot;, &quot;calls&quot;, or &quot;sms&quot;</span>
-<span class="sd">    Returns:</span>
-<span class="sd">      - A summary of the top 3 matching plans with pros/cons.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">candidates</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Destination&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">destination</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
-        <span class="n">candidates</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="s1">&#39;Data_Pass_Validity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">duration</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
-        <span class="k">if</span> <span class="n">candidates</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;No plans found for </span><span class="si">{</span><span class="n">destination</span><span class="si">}</span><span class="s2"> with duration </span><span class="si">{</span><span class="n">duration</span><span class="si">}</span><span class="s2">.&quot;</span>
-
-        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">candidates</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
-            <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">if</span> <span class="n">service_type</span> <span class="o">==</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span>
-                <span class="n">score</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;Data_Pass_Data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;GB&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;MB&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
-            <span class="k">elif</span> <span class="n">service_type</span> <span class="o">==</span> <span class="s2">&quot;calls&quot;</span><span class="p">:</span>
-                <span class="n">score</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;Pay_Per_Use_Call_Outgoing&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;S$&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">elif</span> <span class="n">service_type</span> <span class="o">==</span> <span class="s2">&quot;sms&quot;</span><span class="p">:</span>
-                <span class="n">score</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;Pay_Per_Use_SMS&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;S$&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
-
-            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">score</span><span class="p">,</span> <span class="n">row</span><span class="p">))</span>
-
-        <span class="n">top3</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])[:</span><span class="mi">3</span><span class="p">]</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">top3</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="n">response</span> <span class="o">+=</span> <span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. Zone: </span><span class="si">{</span><span class="n">plan</span><span class="p">[</span><span class="s1">&#39;Zone&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, Destination: </span><span class="si">{</span><span class="n">plan</span><span class="p">[</span><span class="s1">&#39;Destination&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Price: </span><span class="si">{</span><span class="n">plan</span><span class="p">[</span><span class="s1">&#39;Data_Pass_Price&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, Data: </span><span class="si">{</span><span class="n">plan</span><span class="p">[</span><span class="s1">&#39;Data_Pass_Data&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Calls: </span><span class="si">{</span><span class="n">plan</span><span class="p">[</span><span class="s1">&#39;Pay_Per_Use_Call_Outgoing&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, SMS: </span><span class="si">{</span><span class="n">plan</span><span class="p">[</span><span class="s1">&#39;Pay_Per_Use_SMS&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Error processing request: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
-</code></pre></div>
+<p>This redirect URL or payload is configurable and can integrate with existing purchase portals or mocked endpoints for testing.</p>
+<h3 id="test-cases">Test cases</h3>
+<p><strong>Roaming Plan Tool</strong></p>
+<p><em>Basic match on exact plan</em></p>
+<ul>
+<li>Test input: Singapore, 1-day trip, 1GB data</li>
+<li>Expected: Plan returned exactly as specified in the DB.</li>
+</ul>
+<p><em>Interpolated duration match</em></p>
+<ul>
+<li>Test input: Malaysia, 2-day trip, 2GB</li>
+<li>Condition: No exact 2-day plan, should interpolate between 1-day and 3-day</li>
+</ul>
+<p><em>Invalid destination</em></p>
+<ul>
+<li>Test input: "Blorkistan", 3-day trip</li>
+<li>Expected: Empty list, error logged about missing zone.</li>
+</ul>
+<p><em>High data need triggers filtering</em></p>
+<ul>
+<li>Test input: Thailand, 7-day trip, 20GB</li>
+<li>Expected: Only plans with ≥ 20GB or fallback score of LARGE_GB</li>
+<li>Assert: Highest data_gb plan selected if no perfect match.</li>
+</ul>
+<p><em>Unsupported service type</em></p>
+<ul>
+<li>Test input: service_type = "fax"</li>
+<li>Expected: No score computed → empty result</li>
+</ul>
+<p><strong>Recommendation Agent</strong></p>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Best Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Multi-turn conversation</td>
+<td><code>agent.step()</code> or <code>AgentExecutor.invoke()</code> with <code>pytest</code></td>
+</tr>
+<tr>
+<td>Tool call correctness</td>
+<td>Mocking + unittest or <code>pytest</code></td>
+</tr>
+<tr>
+<td>Output structure validation</td>
+<td><code>pytest</code> + <code>jsonschema</code> or custom assert logic</td>
+</tr>
+<tr>
+<td>State machine step-level testing</td>
+<td>Custom agent class with exposed state with <code>pytest</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Valid query</strong> — "I'm going to Japan for 3 days and need 2GB of data." → Agent returns 3 plan options and confirms.</li>
+<li><strong>Invalid country</strong> — "I'll be in Blorkistan." → Agent retries with validation feedback.</li>
+<li><strong>Near match country</strong> — "I'm traveling to Korea." → Agent clarifies with user they are traveling to South Korea, "Korea, Republic of" and selects the appropriate match from available countries.</li>
+<li><strong>Plan query</strong> — "Need data for Thailand." → Agent prompts for duration and amount.</li>
+<li><strong>Non-numeric near match duration</strong> — "I'll be there for a few moons." → Agent retries clarifies if user meant months.</li>
+<li><strong>Non-numeric nonsense duration</strong> — "I'll be there for a few spoons." → Agent retries asking for number of days.</li>
+<li><strong>Out-of-scope query</strong> — "How's the weather in Tokyo?" → Redirects or politely declines.</li>
+<li><strong>High data demand</strong> — "Going to Malaysia, need 100GB for 2 weeks." → Agent returns highest available plan and clarifies additional charges apply for excess data.</li>
+<li><strong>SMS-only request</strong> — "Going to Vietnam, only need SMS for 5 days." → Filters and ranks by SMS cost.</li>
+<li><strong>Purchase rejection</strong> — User declines to buy after plan is shown → Agent offers to restart or exit.</li>
+<li><strong>User confirms plan</strong> — Agent assembles JSON payload and returns redirect link.</li>
+<li><strong>Unexpected user utterance mid-flow</strong> — "Nevermind, show me movie times" → Agent gently resets or offers graceful exit.</li>
+</ul>
 
 
 
