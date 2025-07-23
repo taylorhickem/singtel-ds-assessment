@@ -1,0 +1,98 @@
+[
+  {
+    "table_name": "plan",
+    "filepath": "data/roaming_plan.csv",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "INTEGER",
+        "primary_key": 1,
+        "nullable": 0
+      },
+      {
+        "column_name": "zone",
+        "data_type": "INTEGER",
+        "primary_key": 0,
+        "nullable": 0
+      },
+      {
+        "column_name": "duration_days",
+        "data_type": "INTEGER",
+        "primary_key": 0,
+        "nullable": 0
+      },
+      {
+        "column_name": "data_gb",
+        "data_type": "REAL",
+        "primary_key": 0,
+        "nullable": 0
+      },
+      {
+        "column_name": "price_sgd",
+        "data_type": "REAL",
+        "primary_key": 0,
+        "nullable": 0
+      }
+    ]
+  },
+  {
+    "table_name": "ppu_rate",
+    "filepath": "data/ppu_rate.csv",
+    "columns": [
+      {
+        "column_name": "zone",
+        "data_type": "INTEGER",
+        "primary_key": 1,
+        "nullable": 0
+      },
+      {
+        "column_name": "rate_data_per_10kb",
+        "data_type": "REAL",
+        "primary_key": 0,
+        "nullable": 1
+      },
+      {
+        "column_name": "rate_calls_outgoing_per_min",
+        "data_type": "REAL",
+        "primary_key": 0,
+        "nullable": 1
+      },
+      {
+        "column_name": "rate_calls_incoming_per_min",
+        "data_type": "REAL",
+        "primary_key": 0,
+        "nullable": 1
+      },
+      {
+        "column_name": "rate_per_sms",
+        "data_type": "REAL",
+        "primary_key": 0,
+        "nullable": 1
+      }
+    ]
+  },
+  {
+    "table_name": "destination",
+    "filepath": "data/destination.csv",
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "INTEGER",
+        "primary_key": 1,
+        "nullable": 0
+      },
+      {
+        "column_name": "country",
+        "data_type": "TEXT",
+        "primary_key": 0,
+        "nullable": 0
+      },
+      {
+        "column_name": "zone",
+        "data_type": "INTEGER",
+        "primary_key": 0,
+        "nullable": 0
+      }
+    ]
+  }
+]

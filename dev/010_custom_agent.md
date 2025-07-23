@@ -5,6 +5,255 @@ This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
+### Roaming data plan [Developer] RoamingPlanAgent 2025-07-22 16:30
+
+
+### Roaming data plan [Developer] ChatGPT prompt RoamingPlanAgent 2025-07-22 15:59
+
+ok, lets start with a much simpler setup that uses these three components - the Dialogue Manager, the RoamingPlanAgent, and the cli interface, and no tool integration, it simply starts the conversation, and determines whether the user response is relevant for selecting a plan, if yes, then it returns "Great, let me forward you on to my associate!" and it redirects to dummy URL for another chat agent that will perform the rest of the steps, analogous to the redirect at the end for purchasing the plan. So we've got an outline that we can then build in the remaining features. 
+
+Start simple, VERY simple. I was able to implement another LangChain solution in < 100 lines of code, so start out as bare minimus as possible, and work with the existing dependencies unless you have a compelling argument to use a different set. Also, if you can implement with fewer dependencies, do so and tell me which ones to drop.
+
+### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 14:43
+Attempt to diagnose and resolve failed test case.
+
+__diagnostics__
+The conversation failed to implement several workflow features from the design:
+
+1. **Off-topic handling** – User messages like "I want a pony" were not detected
+   as irrelevant, so the agent kept repeating the same prompt.
+2. **Validation loop** – The tool was invoked with `Blorkistan` and missing
+   duration/data even though inputs were incomplete.
+3. **Results templating and confirmation** – The plan list was printed but the
+   agent never progressed to confirmation or purchase redirection.
+
+These issues stem from missing state tracking for off-topic counts, duplicate
+`_tool_recommend` implementations and lack of checks before calling the tool.
+
+__resolution__
+Implemented a single `_tool_recommend` with input validation and state updates,
+added an `off_topic_count` field with exit logic after three irrelevant replies,
+and reset the counter whenever valid progress is made. The `step` method now
+monitors unchanged state to detect off-topic responses and returns a support
+message when the threshold is reached.
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-22 14:40
+for context, refer to 
+ - the failed test log in `/docs/0301_custom_agent.md` section ## Test case, failed
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `recommend_agent.chat_agent.RoamingPlanAgent` and `cli_agent.py`
+ - review the failed test cases and the design for the `RoamingPlanAgent`
+ - perform a complete diagnostics and identify each of the design features that were failed to implement in the conversation flow, there were several.
+ - for each failure, diagnose the cause in how the agent code was implented, and a resolution
+ - document your diagnostics and resolution strategy in a subsection of the failure test case ### diagnostics and ### resolution
+ - implement the fixes 
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 <HH>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] RoamingPlanAgent 2025-07-22 14:34
+validation and testing
+ - still failed, but now in a functional failure and not exceptions
+ - debugged requirements conflicts, rebuilt env with updated requirements
+ - added a cli interface `cli_agent.py` for direct interaction testing with chat agent
+ - added OpenAI_API_KEY to env variable with import using loadenv
+ - overwrite _tool_recommend()
+ - set verbose = True
+ - updated the Agent system message
+
+### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 13:04
+
+- Implemented LangChain-based `RoamingPlanAgent` using `ChatOpenAI` and
+  `create_openai_functions_agent`.
+- Added structured tool wrapper around `RoamingPlanRecommender` to update agent
+  state when invoked.
+- Added fallback regex logic when no LLM is configured to keep tests runnable
+  offline.
+- Updated `step` method to return conversation state and handle plan selection.
+- Expanded tests to cover near-match country handling and prompting for missing
+  trip details.
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-22 13:02
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `recommend_agent.chat_agent.RoamingPlanAgent`
+ - review the test cases and the design for the `RoamingPlanAgent`
+ - take note that the design implementation is conversational LLM OpenAI `gpt-3.5-turbo`, using the `recommend_agent.recommend.RoamingPlanRecommender` as a tool. The current implementation is based on regex, and would have difficulty handling a conversation with a real human interface.
+ - implement the agent as a class using LangChain package, taking into consideration the test cases, design aims of exposing the state, language interface between the user and the plan recommender tool 
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-22 <HH>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] RoamingPlanAgent review 2025-07-22 12:52
+RoamingPlanAgent review
+ - implemented using regex, not LLM
+
+### Roaming data plan [Codex] RoamingPlanAgent 2025-07-21 22:04
+
+- Implemented `RoamingPlanAgent` with stateful `step` method parsing destination,
+  duration, data amount and service type.
+- Integrated agent with `RoamingPlanRecommender` and basic plan selection logic.
+- Updated `test.py` to exercise valid query, invalid country, high data demand
+  and plan confirmation scenarios without skips.
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent 2025-07-21 22:00
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `recommend_agent.chat_agent.RoamingPlanAgent`
+ - review the test cases and the design for the `RoamingPlanAgent`
+ - implement the agent as a class, taking into consideration the test cases, design aims of exposing the state, language interface between the user and the plan recommender tool 
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent 2025-07-21 <HH>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] RoamingPlanAgent recommend agent test cases 2025-07-21 18:30
+test cases
+ - repaired test cases remove Magic Mock and test actual behavior of `agent.step`
+
+### Roaming data plan [Codex] RoamingPlanAgent recommend agent test cases 2025-07-21 17:49
+- added mocked unit tests for `RoamingPlanAgent` covering valid query, invalid country,
+  high data demand and user purchase confirmation scenarios
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent recommend agent test cases 2025-07-21 17:47
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `test.py`
+ - review the test cases listed for the Recommendation Agent in the Roaming Plan Agent design doc and the placeholders in `tests.py`
+ - implement a few sample test cases in `test.py` making some assumptions about the future behavior and attributes of `RoamingPlanAgent` 
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent recommend agent test cases 2025-07-21 <HH>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Codex] RoamingPlanAgent recommend agent class test cases 2025-07-21 17:07
+
+Implemented skeleton unittest class `TestRoamingPlanAgent` in `test.py` with
+placeholder tests for each scenario listed in the design document. All tests are
+skipped until the future agent implementation is available.
+
+### Roaming data plan [Developer] Codex prompt RoamingPlanAgent recommend agent test cases 2025-07-21 17:05
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `test.py`
+ - review the test cases listed for the Recommendation Agent in the Roaming Plan Agent design doc
+ - design how to implement the test cases, considering the proposed options in the table or other options as you see fit
+ - implement the test cases in `test.py`
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] RoamingPlanAgent recommend agent class test cases 2025-07-21 <>:<MM>
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] RoamingPlanAgent recommend agent test cases 2025-07-21 16:58
+test cases
+ - list 10x additional test cases in `docs/0301_custom_agent.md` for Roaming Plan Recommendation Agent
+ - options for test implementation
+  - `agent.step`, exposed agent state, response JSON parsing
+
+### Roaming data plan [Developer] recommend agent design ChatGPT prompt 2025-07-21 16:25
+
+__recommend agent__
+
+For the chat agent, what are some design features for the agent to act as language aware semantic interpreter between the user and the recommend tool RoamingPlanRecommender (RPR)
+
+The chat agent scope is prompt and gather the user requirements into the specific format that is valid for the RPR, and otherwise to continue in retry loop with the user until the trip specification is valid and ready to use with the RPR tool. Then the agent should select from the shortlisted plans from the RPR tool, format and present the options to the user, confirm plan selection and redirect the user to another URL to purchase the plan
+
+update 0301_custom_agent.md to elaborate on this design intention, apply edits to the current version and add updates for design features that implement this requirement
+
+
+### Roaming data plan [Developer] test cases 2025-07-21 16:02
+tests
+ - polish up test case for unsupported service type
+
+### Roaming data plan [Codex] test cases 2025-07-21 15:34
+- add tests for high data need filtering and unsupported service type
+
+### Roaming data plan [Developer] test cases Codex prompt 2025-07-21 15:33
+for context, refer to 
+ - Roaming Plan Agent design doc `/docs/0301_custom_agent.md` and release doc `dev/010_custom_eagent.md`
+ - `AGENTS.md`
+ - db schema `data/schema.json` and tables `data/*`
+ - source code for the recommend agent `recommend_agent/*`
+ - test script `test.py`
+
+your task
+ - scope `test.py`
+ - add two additional test cases to the test script for "High data need triggers filtering" and "unsupported service type"
+ - summarize your updates as a timestamped session log in the release doc section ### Roaming data plan [Codex] test cases 2025-07-21 <HH>:<MM> 
+ - raise a PR with changes to `test.py` and your session log
+
+### Roaming data plan [Developer] test cases 2025-07-21 15:09
+add test case for invalid destination "Blorkistan"
+
+### Roaming data plan [Developer] recommendation tool 2025-07-21 13:55
+
+test
+ - validated
+ - update test case for expected plan from test trip specifications
+
+recommend
+ - relax scoring on data gb requirement
+ - append rates to plan results
+
+roaming plans db
+ - set build keep_open option default to True
+
+
+### Roaming data plan [Developer] recommendation tool 2025-07-20 22:00
+
+recommend tool
+ - updated recommend method to use the SQLite db
+ - updated test case
+ - added interpolated solution for duration days in between fixed options
+ - updated database build
+
+roaming plans database
+ - implemented db as normalized SQLite database with three tables
+  - destination
+  - ppu_rate
+  - roaming_plan
+
+### Roaming data plan [Developer] recommendation tool 2025-07-19 16:00
+tests
+- add a test case and implement using `pytest`
+    - destination: "Malaysia" 
+    - trip duration: 2 days
+    - service type: "data"
+    - data needed: 5.0
+
+recommendation tool
+ - reorganize, split into Agentic chat agent `recommend_agent/chat_agent.py` and non-agentic recommend tool `recommend_tool/recommend.py`
+ - implement as RoamingPlanRecommender class `recommend_agent/recommend.RoamingPlanRecommender` method `RoamingPlanRecommender.recommend`
+ - `recommend` function:
+  - takes inputs
+    - destination: location 
+    - trip duration: number of days
+    - service type: [data, sms, calls]
+    - data needed: amount of data needed in GB
+  - and returns results as a JSON row from the roaming plan CSV database `data/roaming_plans.csv`
+
 ### Environment [Developer] install dependencies 2025-07-13 20:30
 
 ```bash
@@ -64,5 +313,3 @@ __table: roaming_plans__
 
 refer to PDF file `singtel_roaming_rates.pdf` and the design document `0301_custom_agent.md`
 break up this PDF file into a structured dataset that can be implemented as an Agent tool for a Roaming Plan recommendation engine.
-
-

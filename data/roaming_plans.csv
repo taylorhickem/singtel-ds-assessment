@@ -1,8 +1,0 @@
-Zone,Destination,Data_Pass_Validity,Data_Pass_Data,Data_Pass_Price,Pay_Per_Use_Data,Pay_Per_Use_Call_Outgoing,Pay_Per_Use_Call_Incoming,Pay_Per_Use_SMS
-Zone 1,Malaysia,1 day,1GB,S$1,S$0.01/10KB,S$0.29/min,Free,S$0.10/SMS
-Zone 2,Australia,1 day,1GB,S$5,S$0.02/10KB,S$1.50/min,S$1.00/min,S$0.50/SMS
-Zone 2,China,1 day,1GB,S$5,S$0.02/10KB,S$1.50/min,S$1.00/min,S$0.50/SMS
-Zone 2,India,1 day,1GB,S$5,S$0.02/10KB,S$1.50/min,S$1.00/min,S$0.50/SMS
-Zone 3,United States,1 day,1GB,S$20,S$0.05/10KB,S$3.00/min,S$1.50/min,S$0.50/SMS
-Zone 3,United Kingdom,1 day,1GB,S$20,S$0.05/10KB,S$3.00/min,S$1.50/min,S$0.50/SMS
-Zone 3,Germany,1 day,1GB,S$20,S$0.05/10KB,S$3.00/min,S$1.50/min,S$0.50/SMS
