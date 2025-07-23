@@ -1,12 +1,52 @@
 # Custom Agent
 This release covers Task 01: Custom agent and tool `docs/tasks/0301_custom_agent.md`
 
+## Situation
+Part 1 of the assignment is to build a custom Roaming Plan Recommendation Agent.
+
+## Roaming Plan Agent
+The roaming plan agent design is summarized in `docs/tasks/0301_custom_agent.md`
+it is comprised of an AI Agent interface that navigates the user through a selection process to select an appropriate Data Roaming Plan for their travel needs. The Roaming Plan Agent uses a Roaming Plan Recommendation Tool for modularity to separate the deterministic plan lookup tasks from the organic natural language processing for the user interface task.
+
+## Implementation
+In this release, the Agent was partially implemented with
+
+- **Recommendation tool** - full functionality using an SQLite database backend
+- **AI User Intent Classifer** - one-shot Agent using OpenAI gpt-3.5-turbo to classify the User prompt as either on or off topic
+
+In future releases, both of these two tools can be plugged in to a LangChain AI Agent to manage the full end-to-end workflow.
+
 ## Session logs
 
 session logs are timestamped to Singapore timezone in reverse chronological order, with latest entries at the top, and earlier entries at the bottom.
 
-### Roaming data plan [Developer] RoamingPlanAgent 2025-07-22 16:30
+### Roaming data plan [Developer] RoamingPlanAgent 2025-07-22 20:00
 
+__Refactored Architecture__
+Separated concerns:
+
+- DialogueManager handles interaction and flow
+- RoamingIntentClassifier handles LLM-backed scoring
+- Introduced a base classifier for reuse across other domains
+
+__Improved Behavior__
+
+- Replaced brittle "yes"/"no" classification with real-valued score (0–1.0)
+- Added reasoning output for debugging and auditability
+- Tuned threshold (0.33) to catch ambiguous but travel-related prompts
+- Recovered accuracy on previously unstable cases (e.g. “Langkawi”, “Hajj”, “snorkeling”)
+
+__Test Coverage__
+
+- Classifier outputs are tested with bulk prompt lists via subTest()
+- Failures show reasoning and score for diagnosis
+
+__Next: Plug in full RoamingPlanAgent__
+After redirect, launch LangChain agent to:
+
+- Ask for destination, duration, data amount
+- Call RoamingPlanRecommender
+- Present ranked plans
 
 ### Roaming data plan [Developer] ChatGPT prompt RoamingPlanAgent 2025-07-22 15:59
 
